@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './GoalSetter.css';
 
-const GoalSetter = ({ onComplete }) => {
+const GoalSetter = ({ onComplete, user }) => {
   const [goal, setGoal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +20,8 @@ const GoalSetter = ({ onComplete }) => {
     
     try {
       const response = await axios.post('/api/set-goal', {
-        goal: parseFloat(goal)
+        goal: parseFloat(goal),
+        user_id: user.id
       });
       
       if (response.data.status === 'success') {

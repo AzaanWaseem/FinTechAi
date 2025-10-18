@@ -3,7 +3,7 @@ import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import './Dashboard.css';
 
-const Dashboard = ({ onBack }) => {
+const Dashboard = ({ onBack, user, onLogout }) => {
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -75,6 +75,21 @@ const Dashboard = ({ onBack }) => {
   const totalSpending = needsTotal + wantsTotal;
   const savingsGoal = 500; // This would come from the backend in a real app
   const progressPercentage = Math.min((savingsGoal - wantsTotal) / savingsGoal * 100, 100);
+
+  <div className="dashboard-header">
+    <div className="header-left">
+      <h2>Your Financial Dashboard</h2>
+      {user && <p className="user-welcome">Welcome back, {user.name}!</p>}
+    </div>
+    <div className="header-right">
+      <button onClick={onLogout} className="logout-button">
+        Logout
+      </button>
+      <button onClick={onBack} className="back-button">
+        ← Start Over
+      </button>
+    </div>
+  </div>
 
   return (
     <div className="dashboard-container">
