@@ -1,9 +1,11 @@
 import requests
 import json
 import os
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class NessieClient:
     def __init__(self):
@@ -23,8 +25,7 @@ class NessieClient:
         try:
             # Test API connection first
             if not self._test_api_connection():
-                print("⚠️  Nessie API not accessible, using mock data")
-                return self._create_mock_customer_and_account()
+                raise RuntimeError("Nessie API not accessible")
             
             # Create customer
             customer_data = {
@@ -46,8 +47,7 @@ class NessieClient:
             )
             
             if customer_response.status_code != 201:
-                print(f"⚠️  Customer creation failed: {customer_response.status_code}, using mock data")
-                return self._create_mock_customer_and_account()
+                raise RuntimeError(f"Nessie customer creation failed: {customer_response.status_code}")
             
             customer_id = customer_response.json().get('objectCreated', {}).get('_id')
             
@@ -66,16 +66,15 @@ class NessieClient:
             )
             
             if account_response.status_code != 201:
-                print(f"⚠️  Account creation failed: {account_response.status_code}, using mock data")
-                return self._create_mock_customer_and_account()
+                raise RuntimeError(f"Nessie account creation failed: {account_response.status_code}")
             
             account_id = account_response.json().get('objectCreated', {}).get('_id')
             
             return customer_id, account_id
             
         except Exception as e:
-            print(f"⚠️  Error creating customer/account: {e}, using mock data")
-            return self._create_mock_customer_and_account()
+            print(f"⚠️  Error creating customer/account: {e}")
+            raise
     
     def _create_mock_customer_and_account(self):
         """Create mock customer and account data"""
@@ -89,8 +88,7 @@ class NessieClient:
         try:
             # Test API connection first
             if not self._test_api_connection():
-                print("⚠️  Nessie API not accessible, skipping transaction seeding")
-                return
+                raise RuntimeError("Nessie API not accessible for seeding")
             
             # Get valid merchant IDs first
             merchants_response = requests.get(f"{self.base_url}/merchants?key={self.api_key}")
@@ -170,11 +168,8 @@ class NessieClient:
                     json=transaction,
                     headers={'Content-Type': 'application/json'}
                 )
-                
                 if response.status_code != 201:
-                    print(f"⚠️  Transaction creation failed: {response.status_code}")
-                    break
-                    
+                    raise RuntimeError(f"Transaction creation failed: {response.status_code}")
             print(f"✅ Seeded {len(sample_transactions)} transactions")
             
         except Exception as e:
@@ -185,88 +180,138 @@ class NessieClient:
         try:
             # Test API connection first
             if not self._test_api_connection():
-                print("⚠️  Nessie API not accessible, using mock transactions")
-                return self._get_mock_transactions()
+                raise RuntimeError("Nessie API not accessible for fetching transactions")
             
             response = requests.get(f"{self.base_url}/accounts/{account_id}/purchases?key={self.api_key}")
             
             if response.status_code != 200:
-                print(f"⚠️  Failed to get transactions: {response.status_code}, using mock data")
-                return self._get_mock_transactions()
+                raise RuntimeError(f"Failed to get transactions: {response.status_code}")
             
             transactions = response.json()
             if not transactions:
-                print("⚠️  No transactions found, using mock data")
-                return self._get_mock_transactions()
-            
-            return transactions
+                return []
+            # Normalize Nessie transactions to a simple shape with id, description, amount
+            normalized = [self._normalize_tx(tx, source='nessie') for tx in transactions]
+            return normalized
             
         except Exception as e:
-            print(f"⚠️  Error getting transactions: {e}, using mock data")
-            return self._get_mock_transactions()
+            print(f"⚠️  Error getting transactions: {e}")
+            raise
+
+    def delete_transaction(self, account_id, purchase_id):
+        """Delete a purchase by its ID if supported by Nessie"""
+        try:
+            if not self._test_api_connection():
+                raise RuntimeError("Nessie API not accessible for deletion")
+            response = requests.delete(f"{self.base_url}/accounts/{account_id}/purchases/{purchase_id}?key={self.api_key}")
+            if response.status_code in (200, 204):
+                return True
+            else:
+                raise RuntimeError(f"Failed to delete purchase: {response.status_code}")
+        except Exception as e:
+            print(f"⚠️  Error deleting transaction: {e}")
+            raise
     
     def _get_mock_transactions(self):
-        """Return mock transaction data"""
-        return [
-            {"description": "HEB Grocery Store", "amount": 1200},
-            {"description": "Starbucks Coffee", "amount": 45},
-            {"description": "Shell Gas Station", "amount": 85},
-            {"description": "Austin Energy Bill", "amount": 1200},
-            {"description": "Target Shopping", "amount": 65},
-            {"description": "Netflix Subscription", "amount": 25},
-            {"description": "Whole Foods Market", "amount": 150},
-            {"description": "Chipotle Mexican Grill", "amount": 35},
-            {"description": "AT&T Mobile Bill", "amount": 200},
-            {"description": "AMC Theaters", "amount": 75},
-            {"description": "CVS Pharmacy", "amount": 90},
-            {"description": "Dunkin Donuts", "amount": 40},
-            {"description": "Rent Payment", "amount": 300},
-            {"description": "Uber Ride", "amount": 55},
-            {"description": "Walmart Supercenter", "amount": 120},
-            {"description": "Spotify Premium", "amount": 15},
-            {"description": "Costco Wholesale", "amount": 180},
-            {"description": "McDonald's", "amount": 30},
-            {"description": "Car Insurance Payment", "amount": 250},
-            {"description": "Amazon Prime", "amount": 50},
-            {"description": "Trader Joe's", "amount": 95},
-            {"description": "Subway", "amount": 20},
-            {"description": "Chevron Gas Station", "amount": 110},
-            {"description": "Zara Clothing", "amount": 70},
-            {"description": "Kroger Grocery", "amount": 160},
-            {"description": "Hulu Subscription", "amount": 12},
-            {"description": "Safeway Grocery", "amount": 140},
-            {"description": "Pizza Hut", "amount": 28},
-            {"description": "Health Insurance", "amount": 220},
-            {"description": "Regal Cinemas", "amount": 60},
-            {"description": "Sprouts Farmers Market", "amount": 105},
-            {"description": "Taco Bell", "amount": 18},
-            {"description": "Exxon Gas Station", "amount": 80},
-            {"description": "H&M Clothing", "amount": 45},
-            {"description": "Publix Supermarket", "amount": 130},
-            {"description": "Apple Music", "amount": 8},
-            {"description": "Albertsons Grocery", "amount": 170},
-            {"description": "KFC", "amount": 35},
-            {"description": "Life Insurance", "amount": 190},
-            {"description": "Cinemark Theaters", "amount": 42},
-            {"description": "Food Lion Grocery", "amount": 115},
-            {"description": "Burger King", "amount": 22},
-            {"description": "BP Gas Station", "amount": 75},
-            {"description": "Forever 21", "amount": 38},
-            {"description": "Giant Eagle Grocery", "amount": 125},
-            {"description": "Disney+ Subscription", "amount": 14},
-            {"description": "Wegmans Grocery", "amount": 155},
-            {"description": "Wendy's", "amount": 32},
-            {"description": "Dental Insurance", "amount": 210},
-            {"description": "Marcus Theaters", "amount": 48},
-            {"description": "Harris Teeter Grocery", "amount": 100},
-            {"description": "Arby's", "amount": 26},
-            {"description": "Mobil Gas Station", "amount": 85},
-            {"description": "Gap Clothing", "amount": 52},
-            {"description": "Stop & Shop Grocery", "amount": 135},
-            {"description": "HBO Max Subscription", "amount": 16},
-            {"description": "King Soopers Grocery", "amount": 145},
-            {"description": "Popeyes", "amount": 29},
-            {"description": "Vision Insurance", "amount": 175},
-            {"description": "AMC Dine-In Theaters", "amount": 55}
+        """Generate a modest set of realistic-looking mock transactions.
+
+        We avoid a huge hard-coded list and instead synthesize transactions from
+        a small merchant pool with randomized amounts and dates. Each generated
+        transaction will be a dict with description and amount (the normalizer
+        will attach an id when returned to callers).
+        """
+        import random
+        from datetime import datetime, timedelta
+
+        merchants = [
+            "HEB Grocery", "Starbucks", "Shell Gas", "Austin Energy", "Target",
+            "Netflix", "Whole Foods", "Chipotle", "AT&T", "AMC Theaters",
+            "CVS Pharmacy", "Uber", "Walmart", "Spotify", "Costco",
+            "McDonald's", "Amazon", "Trader Joe's", "Chevron", "Zara"
         ]
+
+        # Produce between 20 and 40 transactions across the last 60 days
+        count = random.randint(20, 35)
+        transactions = []
+        for i in range(count):
+            merchant = random.choice(merchants)
+            # skew amounts depending on merchant type
+            if any(k in merchant.lower() for k in ['grocery', 'whole', 'costco', 'trader']):
+                amount = round(random.uniform(30, 250), 2)
+            elif any(k in merchant.lower() for k in ['starbucks', 'coffee', "mc"]):
+                amount = round(random.uniform(3, 25), 2)
+            elif any(k in merchant.lower() for k in ['netflix', 'spotify', 'hbo', 'amazon']):
+                amount = round(random.uniform(8, 20), 2)
+            elif any(k in merchant.lower() for k in ['shell', 'chevron', 'bp', 'mobil']):
+                amount = round(random.uniform(25, 120), 2)
+            elif 'energy' in merchant.lower() or 'insurance' in merchant.lower():
+                amount = round(random.uniform(80, 300), 2)
+            else:
+                amount = round(random.uniform(10, 160), 2)
+
+            # include a short descriptor (mimics merchant + optional note)
+            descriptor = merchant + (" Store" if random.random() < 0.3 else "")
+
+            # random past date for realism (not used by analyzer now, but helpful)
+            days_ago = random.randint(1, 60)
+            date = (datetime.utcnow() - timedelta(days=days_ago)).isoformat()
+
+            transactions.append({"description": descriptor, "amount": amount, "date": date})
+
+        return transactions
+
+    def _normalize_tx(self, tx, source='mock'):
+        """Return transaction in standard shape: {id, description, amount, source}"""
+        # Nessie returns objects with '_id', 'description', 'amount' or similar
+        tx_id = None
+        if isinstance(tx, dict):
+            tx_id = tx.get('_id') or tx.get('id')
+            description = tx.get('description') or tx.get('merchant') or ''
+            amount = tx.get('amount') or tx.get('purchase_amount') or 0
+        else:
+            description = ''
+            amount = 0
+
+        if not tx_id:
+            tx_id = str(uuid.uuid4())
+
+        try:
+            amount = float(amount)
+        except:
+            amount = 0.0
+
+        return {
+            'id': tx_id,
+            'description': description,
+            'amount': amount,
+            'source': source
+        }
+
+    def create_transaction(self, account_id, tx):
+        """Create a transaction in Nessie if available. Returns normalized tx with id or None if failed."""
+        try:
+            if not self._test_api_connection():
+                print("⚠️  Nessie API not accessible, cannot create transaction")
+                return None
+
+            # Build minimal purchase payload
+            payload = {
+                'medium': 'balance',
+                'amount': tx.get('amount', 0),
+                'description': tx.get('description', '')
+            }
+            response = requests.post(
+                f"{self.base_url}/accounts/{account_id}/purchases?key={self.api_key}",
+                json=payload,
+                headers={'Content-Type': 'application/json'}
+            )
+            if response.status_code in (200, 201):
+                created = response.json()
+                return self._normalize_tx(created, source='nessie')
+            else:
+                print(f"⚠️  Failed to create transaction: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"⚠️  Error creating transaction: {e}")
+            return None
 
