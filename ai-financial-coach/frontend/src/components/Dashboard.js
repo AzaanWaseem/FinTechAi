@@ -79,7 +79,7 @@ const Dashboard = ({ onBack }) => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h2>Your Financial Dashboard 📊</h2>
+  <h2>Your Financial Dashboard</h2>
         <button onClick={onBack} className="back-button">
           ← Start Over
         </button>
@@ -144,7 +144,7 @@ const Dashboard = ({ onBack }) => {
 
         {/* AI Recommendation */}
         <div className="recommendation-card">
-          <h3>💡 AI Recommendation</h3>
+          <h3>AI Recommendation</h3>
           <div className="recommendation-content">
             <p>{recommendation}</p>
           </div>

@@ -39,9 +39,9 @@ const GoalSetter = ({ onComplete }) => {
   return (
     <div className="goal-setter-container">
       <div className="goal-setter-card">
-        <h1>Set Your Monthly Savings Goal 🎯</h1>
+        <h1>Set Your Monthly Savings Goal</h1>
         <p className="subtitle">
-          How much would you like to save each month? This will help us provide personalized recommendations.
+          Enter a target amount to receive personalized savings recommendations.
         </p>
         
         <form onSubmit={handleSetGoal} className="goal-form">
@@ -78,7 +78,7 @@ const GoalSetter = ({ onComplete }) => {
         </form>
         
         <div className="goal-tips">
-          <h3>💡 Tips for setting your goal:</h3>
+            <h3>Tips for setting your goal</h3>
           <ul>
             <li>Start with 10-20% of your monthly income</li>
             <li>Consider your essential expenses first</li>

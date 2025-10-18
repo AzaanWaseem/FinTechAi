@@ -29,9 +29,9 @@ const Onboarding = ({ onComplete }) => {
   return (
     <div className="onboarding-container">
       <div className="onboarding-card">
-        <h1>Welcome to Your AI Financial Coach! 💰</h1>
+        <h1>Welcome to AI Financial Coach</h1>
         <p className="subtitle">
-          Let's get started by creating your mock financial account and analyzing your spending patterns.
+          We'll create a demo account and analyze your spending to provide personalized insights.
         </p>
         
         {error && (
@@ -51,10 +51,10 @@ const Onboarding = ({ onComplete }) => {
         <div className="features">
           <h3>What you'll get:</h3>
           <ul>
-            <li>📊 AI-powered spending analysis</li>
-            <li>🎯 Personalized savings recommendations</li>
-            <li>📈 Interactive financial dashboard</li>
-            <li>💡 Investment education when you reach your goals</li>
+            <li>AI-powered spending analysis</li>
+            <li>Personalized savings recommendations</li>
+            <li>Interactive financial dashboard</li>
+            <li>Investment education when you reach your goals</li>
           </ul>
         </div>
       </div>

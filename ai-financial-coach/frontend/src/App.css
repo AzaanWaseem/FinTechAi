@@ -1,18 +1,20 @@
-.App {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+.App { min-height: 100vh; display:flex; flex-direction:column }
 
-* {
-  box-sizing: border-box;
-}
+.app-shell { background: var(--bg); min-height: 100vh }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+* { box-sizing: border-box }
+
+body { margin:0; padding:0 }
+
+.container { max-width:1100px; margin:32px auto; padding: 0 20px }
+
+.card { background: var(--card); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(11,22,50,0.06); padding: 20px }
+
+.header-row { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px }
+
+.btn-primary { background: var(--primary); color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer }
+.btn-ghost { background:transparent; border:1px solid #e6eefc; color:var(--primary); padding:8px 12px; border-radius:8px }
+
+.muted { color: var(--muted) }
+
+.small { font-size: 0.9rem }

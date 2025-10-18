@@ -1,48 +1,49 @@
 .dashboard-container {
   min-height: 100vh;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
+  background: #f7f8fa;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
   background: white;
-  padding: 20px 30px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
 }
 
 .dashboard-header h2 {
-  color: #333;
+  color: #004977;
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
 }
 
 .back-button {
-  background: #6c757d;
+  background: #6b7280;
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 25px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .back-button:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
+  background: #4b5563;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  max-width: 1200px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -51,111 +52,125 @@
 .recommendation-card,
 .transactions-card {
   background: white;
-  border-radius: 15px;
-  padding: 25px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
 }
 
 .chart-card:hover,
 .progress-card:hover,
 .recommendation-card:hover,
 .transactions-card:hover {
-  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .chart-card h3,
 .progress-card h3,
 .recommendation-card h3,
 .transactions-card h3 {
-  color: #333;
-  margin-bottom: 20px;
-  font-size: 1.3rem;
-  font-weight: 600;
-  text-align: center;
+  color: #111827;
+  margin-bottom: 24px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: left;
 }
 
 .chart-container {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .chart-legend {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 32px;
   flex-wrap: wrap;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 600;
-  color: #555;
+  color: #374151;
+  font-size: 0.95rem;
 }
 
 .legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
 }
 
 .progress-container {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 10px;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  background: #10b981;
   transition: width 0.5s ease;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 
 .progress-text {
   display: flex;
   justify-content: space-between;
   font-weight: 600;
-  color: #555;
+  color: #374151;
+  font-size: 0.9rem;
 }
 
 .savings-summary {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 10px;
-  text-align: center;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: left;
+  border: 1px solid #e5e7eb;
 }
 
 .savings-summary p {
-  margin: 5px 0;
-  color: #555;
+  margin: 8px 0;
+  color: #374151;
   font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.recommendation-card {
+  background: linear-gradient(135deg, #004977 0%, #003a5d 100%);
+  color: white;
+}
+
+.recommendation-card h3 {
+  color: white;
 }
 
 .recommendation-content {
-  background: #f8f9fa;
+  background: rgba(255, 255, 255, 0.1);
   padding: 20px;
-  border-radius: 10px;
-  border-left: 4px solid #667eea;
+  border-radius: 8px;
+  border-left: 3px solid #60a5fa;
 }
 
 .recommendation-content p {
   margin: 0;
-  color: #555;
+  color: white;
   line-height: 1.6;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .transactions-list {
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -163,25 +178,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
 .transaction-item.need {
-  background: #e8f5e8;
-  border-left: 4px solid #4CAF50;
+  background: #f0fdf4;
+  border-left: 3px solid #10b981;
 }
 
 .transaction-item.want {
-  background: #fff3e0;
-  border-left: 4px solid #FF9800;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
 }
 
 .transaction-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .transaction-info {
@@ -192,40 +209,48 @@
 
 .transaction-description {
   font-weight: 600;
-  color: #333;
+  color: #111827;
+  font-size: 0.95rem;
 }
 
 .transaction-category {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.8rem;
+  color: #6b7280;
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .transaction-amount {
   font-weight: 700;
-  color: #333;
-  font-size: 1.1rem;
+  color: #111827;
+  font-size: 1.05rem;
 }
 
 .loading {
   text-align: center;
-  color: white;
-  padding: 50px;
+  color: #004977;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  max-width: 500px;
+  margin: 100px auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .loading h2 {
-  margin-bottom: 30px;
-  font-size: 2rem;
+  margin-bottom: 32px;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(255, 255, 255, 0.3);
-  border-top: 5px solid white;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #004977;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin: 0 auto;
 }
 
@@ -236,35 +261,41 @@
 
 .error-state {
   text-align: center;
-  color: white;
-  padding: 50px;
+  padding: 60px 40px;
   background: white;
-  border-radius: 15px;
-  color: #333;
+  border-radius: 12px;
   max-width: 500px;
-  margin: 0 auto;
+  margin: 100px auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .error-state h2 {
-  color: #c62828;
-  margin-bottom: 20px;
+  color: #dc2626;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.error-state p {
+  color: #4b5563;
+  margin-bottom: 24px;
 }
 
 .retry-button {
-  background: #667eea;
+  background: #004977;
   color: white;
   border: none;
-  padding: 12px 25px;
-  border-radius: 25px;
+  padding: 12px 24px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  margin: 10px;
-  transition: all 0.3s ease;
+  margin: 8px;
+  transition: all 0.2s ease;
 }
 
 .retry-button:hover {
-  background: #5a6fd8;
-  transform: translateY(-1px);
+  background: #003a5d;
+  box-shadow: 0 4px 12px rgba(0, 73, 119, 0.2);
 }
 
 /* Responsive Design */
@@ -275,12 +306,16 @@
   
   .dashboard-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
     text-align: center;
   }
   
   .chart-legend {
     flex-direction: column;
     align-items: center;
+  }
+  
+  .dashboard-container {
+    padding: 16px;
   }
 }
