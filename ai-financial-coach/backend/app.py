@@ -20,6 +20,8 @@ user_session_state = {
     "savings_goal": 0,
     "monthly_budget": 0
 }
+# Note: tracks transactions the user has chosen to remove/hide (account_id -> [ id | {description, amount} ])
+user_session_state.setdefault('removed_transactions', {})
 
 # Initialize clients
 nessie_client = NessieClient()
@@ -36,6 +38,56 @@ def analyze_spending():
         
         # Get transactions
         transactions = nessie_client.get_transactions(account_id)
+        # Merge any in-memory mock transactions the user added via UI
+        mock_tx = user_session_state.get('mock_transactions', {}).get(account_id, [])
+        if mock_tx:
+            # Ensure mock txs have id and source
+            merged = []
+            for m in mock_tx:
+                if not isinstance(m, dict):
+                    continue
+                tx_id = m.get('id')
+                if not tx_id:
+                    import uuid as _uuid
+                    tx_id = str(_uuid.uuid4())
+                merged.append({
+                    'id': tx_id,
+                    'description': m.get('description', ''),
+                    'amount': float(m.get('amount', 0)),
+                    'source': m.get('source', 'added')
+                })
+            transactions = transactions + merged
+
+        # Filter out any transactions the user removed/hidden
+        removed_tx = user_session_state.get('removed_transactions', {}).get(account_id, [])
+        if removed_tx:
+            removed_ids = set([r for r in removed_tx if isinstance(r, str)])
+            removed_pairs = [r for r in removed_tx if isinstance(r, dict)]
+
+            def is_removed(tx):
+                # If tx has an id and id is in removed_ids
+                try:
+                    if tx.get('id') and str(tx.get('id')) in removed_ids:
+                        return True
+                except:
+                    pass
+                # Fallback: match by description+amount for dict entries
+                try:
+                    tx_desc = (tx.get('description') or '').strip().lower()
+                    tx_amount = float(tx.get('amount') or 0)
+                except:
+                    return False
+                for r in removed_pairs:
+                    try:
+                        r_desc = (r.get('description') or '').strip().lower()
+                        r_amount = float(r.get('amount') or 0)
+                    except:
+                        continue
+                    if tx_desc == r_desc and tx_amount == r_amount:
+                        return True
+                return False
+
+            transactions = [tx for tx in transactions if not is_removed(tx)]
         if not transactions:
             return {"error": "No transactions found."}
         
@@ -55,6 +107,7 @@ def analyze_spending():
                 else:
                     category = 'Want'
                 categorized_transactions.append({
+                    'id': tx.get('id'),
                     'description': tx.get('description', ''),
                     'amount': tx.get('amount', 0),
                     'category': category
@@ -67,8 +120,8 @@ def analyze_spending():
                     category = categorized_result['transactions'][i]
                 else:
                     category = 'Want'  # Default fallback
-                
                 categorized_transactions.append({
+                    'id': tx.get('id'),
                     'description': tx.get('description', ''),
                     'amount': tx.get('amount', 0),
                     'category': category
@@ -96,8 +149,10 @@ def analyze_spending():
             "monthlyBudget": user_session_state.get("monthly_budget", 0),
             "savingsGoal": user_session_state.get("savings_goal", 0),
             "recommendation": recommendation,
-            "categorizedTransactions": categorized_transactions
+            "categorizedTransactions": categorized_transactions,
+            "savingsGoal": savings_goal
         }
+        
         
     except Exception as e:
         print(f"Error in analyze_spending: {e}")
@@ -112,13 +167,12 @@ def onboard():
         if customer_id and account_id:
             user_session_state["customer_id"] = customer_id
             user_session_state["account_id"] = account_id
-            
-            # Try to seed transactions (non-blocking)
             try:
                 nessie_client.seed_transactions(account_id)
             except Exception as e:
-                print(f"Warning: Could not seed transactions: {e}")
-            
+                print(f"Error during seeding: {e}")
+                return jsonify({"error": "Failed to seed transactions on Nessie"}), 500
+
             return jsonify({
                 "customerId": customer_id,
                 "accountId": account_id
@@ -201,6 +255,136 @@ def investment_idea():
 def health():
     """Health check endpoint"""
     return jsonify({"status": "healthy", "message": "AI Financial Coach API is running"})
+
+
+@app.route('/api/seed-transactions', methods=['POST'])
+def seed_transactions():
+    """Seed mock transactions for the current account"""
+    try:
+        account_id = user_session_state.get("account_id")
+        if not account_id:
+            return jsonify({"error": "No account found. Please complete onboarding first."}), 400
+        try:
+            nessie_client.seed_transactions(account_id)
+            return jsonify({"status": "success", "message": "Transactions seeded"})
+        except Exception as e:
+            print(f"Error seeding transactions: {e}")
+            return jsonify({"error": "Failed to seed transactions"}), 500
+    except Exception as e:
+        print(f"Error seeding transactions: {e}")
+        return jsonify({"error": "Failed to seed transactions"}), 500
+
+
+@app.route('/api/add-transaction', methods=['POST'])
+def add_transaction():
+    """Add a single mock transaction to the in-memory store for the account"""
+    try:
+        data = request.get_json() or {}
+        description = data.get('description')
+        amount = data.get('amount')
+
+        if not description or amount is None:
+            return jsonify({"error": "description and amount are required"}), 400
+
+        account_id = user_session_state.get('account_id')
+
+        # ensure amount is numeric
+        try:
+            amount = float(amount)
+        except:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        # If there's no Nessie account yet, fall back to an in-memory store so users
+        # can add transactions (useful during onboarding or when Nessie is unreachable)
+        if not account_id:
+            import uuid as _uuid
+            mock_tx = {
+                'id': str(_uuid.uuid4()),
+                'description': description,
+                'amount': amount,
+                'source': 'local'
+            }
+            user_session_state.setdefault('mock_transactions', {})
+            user_session_state['mock_transactions'].setdefault('local', [])
+            user_session_state['mock_transactions']['local'].append(mock_tx)
+            return jsonify({"status": "success", "transaction": mock_tx})
+
+        # Attempt to create transaction in Nessie for persistence
+        try:
+            created = nessie_client.create_transaction(account_id, {"description": description, "amount": amount})
+        except Exception as e:
+            created = None
+
+        # If Nessie creation failed, fall back to in-memory for this account
+        if not created:
+            import uuid as _uuid
+            mock_tx = {
+                'id': str(_uuid.uuid4()),
+                'description': description,
+                'amount': amount,
+                'source': 'local'
+            }
+            user_session_state.setdefault('mock_transactions', {})
+            user_session_state['mock_transactions'].setdefault(account_id, [])
+            user_session_state['mock_transactions'][account_id].append(mock_tx)
+            return jsonify({"status": "success", "transaction": mock_tx})
+
+        return jsonify({"status": "success", "transaction": created})
+    except Exception as e:
+        print(f"Error in add_transaction: {e}")
+        return jsonify({"error": "Failed to add transaction"}), 500
+
+
+@app.route('/api/remove-transaction', methods=['POST'])
+def remove_transaction():
+    """Mark a transaction as removed/hidden in the in-memory store for the account"""
+    try:
+        data = request.get_json() or {}
+        tx_id = data.get('id')
+        if not tx_id:
+            return jsonify({"error": "id is required for removal"}), 400
+
+        account_id = user_session_state.get('account_id')
+        # If no account exists, try to remove from the local mock store
+        if not account_id:
+            local_list = user_session_state.get('mock_transactions', {}).get('local', [])
+            before = len(local_list)
+            local_list = [t for t in local_list if str(t.get('id')) != str(tx_id)]
+            user_session_state.setdefault('mock_transactions', {})['local'] = local_list
+            if len(local_list) < before:
+                return jsonify({"status": "success", "removed": {"id": tx_id}})
+            else:
+                # mark as removed for safety
+                user_session_state.setdefault('removed_transactions', {}).setdefault('local', []).append(str(tx_id))
+                return jsonify({"status": "success", "removed": {"id": tx_id}})
+
+        # Try to delete from Nessie; if it fails, fall back to marking removed in memory
+        try:
+            try:
+                success = nessie_client.delete_transaction(account_id, tx_id)
+            except Exception:
+                success = False
+
+            if success:
+                return jsonify({"status": "success", "removed": {"id": tx_id}})
+
+            # Fallback: remove from mock_transactions for this account if present
+            acct_list = user_session_state.get('mock_transactions', {}).get(account_id, [])
+            before = len(acct_list)
+            acct_list = [t for t in acct_list if str(t.get('id')) != str(tx_id)]
+            user_session_state.setdefault('mock_transactions', {})[account_id] = acct_list
+            if len(acct_list) < before:
+                return jsonify({"status": "success", "removed": {"id": tx_id}})
+
+            # Otherwise mark id as removed so analysis will filter it
+            user_session_state.setdefault('removed_transactions', {}).setdefault(account_id, []).append(str(tx_id))
+            return jsonify({"status": "success", "removed": {"id": tx_id}})
+        except Exception as e:
+            print(f"Error deleting transaction: {e}")
+            return jsonify({"error": "Failed to delete transaction"}), 500
+    except Exception as e:
+        print(f"Error in remove_transaction: {e}")
+        return jsonify({"error": "Failed to remove transaction"}), 500
 
 def run_scheduled_analysis():
     """Scheduled function to run analysis and send notifications"""
