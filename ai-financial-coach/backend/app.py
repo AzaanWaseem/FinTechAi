@@ -17,7 +17,8 @@ CORS(app)
 user_session_state = {
     "customer_id": None,
     "account_id": None,
-    "savings_goal": 0
+    "savings_goal": 0,
+    "monthly_budget": 0
 }
 
 # Initialize clients
@@ -91,6 +92,9 @@ def analyze_spending():
         return {
             "needsTotal": needs_total,
             "wantsTotal": wants_total,
+            "totalSpending": needs_total + wants_total,
+            "monthlyBudget": user_session_state.get("monthly_budget", 0),
+            "savingsGoal": user_session_state.get("savings_goal", 0),
             "recommendation": recommendation,
             "categorizedTransactions": categorized_transactions
         }
@@ -128,18 +132,27 @@ def onboard():
 
 @app.route('/api/set-goal', methods=['POST'])
 def set_goal():
-    """Set the user's monthly savings goal"""
+    """Set the user's monthly savings goal and budget"""
     try:
         data = request.get_json()
         goal = data.get('goal', 0)
+        budget = data.get('budget', 0)
         
         if goal <= 0:
             return jsonify({"error": "Goal must be greater than 0"}), 400
         
+        if budget <= 0:
+            return jsonify({"error": "Budget must be greater than 0"}), 400
+            
+        if goal > budget:
+            return jsonify({"error": "Savings goal cannot be greater than budget"}), 400
+        
         user_session_state["savings_goal"] = goal
+        user_session_state["monthly_budget"] = budget
         return jsonify({
             "status": "success",
-            "goalSet": goal
+            "goalSet": goal,
+            "budgetSet": budget
         })
         
     except Exception as e:

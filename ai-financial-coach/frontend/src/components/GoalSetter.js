@@ -4,6 +4,7 @@ import './GoalSetter.css';
 
 const GoalSetter = ({ onComplete }) => {
   const [goal, setGoal] = useState('');
+  const [budget, setBudget] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -15,12 +16,23 @@ const GoalSetter = ({ onComplete }) => {
       return;
     }
     
+    if (!budget || budget <= 0) {
+      setError('Please enter a valid monthly budget greater than $0');
+      return;
+    }
+    
+    if (parseFloat(goal) > parseFloat(budget)) {
+      setError('Your savings goal cannot be greater than your monthly budget');
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     
     try {
       const response = await axios.post('/api/set-goal', {
-        goal: parseFloat(goal)
+        goal: parseFloat(goal),
+        budget: parseFloat(budget)
       });
       
       if (response.data.status === 'success') {
@@ -39,12 +51,29 @@ const GoalSetter = ({ onComplete }) => {
   return (
     <div className="goal-setter-container">
       <div className="goal-setter-card">
-        <h1>Set Your Monthly Savings Goal</h1>
+        <h1>Set Your Financial Goals</h1>
         <p className="subtitle">
-          Enter a target amount to receive personalized savings recommendations.
+          Set your monthly budget and savings goal to get personalized financial insights.
         </p>
         
         <form onSubmit={handleSetGoal} className="goal-form">
+          <div className="input-group">
+            <label htmlFor="budget">Monthly Budget:</label>
+            <div className="input-wrapper">
+              <span className="currency-symbol">$</span>
+              <input
+                type="number"
+                id="budget"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="3000"
+                min="1"
+                step="0.01"
+                className="goal-input"
+              />
+            </div>
+          </div>
+          
           <div className="input-group">
             <label htmlFor="goal">Monthly Savings Goal:</label>
             <div className="input-wrapper">
@@ -78,11 +107,12 @@ const GoalSetter = ({ onComplete }) => {
         </form>
         
         <div className="goal-tips">
-            <h3>Tips for setting your goal</h3>
+            <h3>Tips for setting your goals</h3>
           <ul>
-            <li>Start with 10-20% of your monthly income</li>
+            <li>Budget should include all your monthly expenses</li>
+            <li>Savings goal should be 10-20% of your budget</li>
             <li>Consider your essential expenses first</li>
-            <li>You can always adjust this later</li>
+            <li>You can always adjust these later</li>
             <li>Even small amounts add up over time!</li>
           </ul>
         </div>

@@ -1,0 +1,203 @@
+.rewards-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.rewards-card h3 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.rewards-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.points-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.points-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px;
+  background: #004879;
+  border-radius: 8px;
+  color: white;
+}
+
+.points-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.points-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.points-rate {
+  color: #4b5563;
+}
+
+.points-rate p {
+  margin: 4px 0;
+}
+
+.redeem-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.redeem-section h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.reward-description {
+  color: #4b5563;
+  margin-bottom: 16px;
+}
+
+.retailers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.retailer-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retailer-button:hover {
+  border-color: #004879;
+}
+
+.retailer-button.selected {
+  border-color: #004879;
+  background: #004879;
+  color: white;
+}
+
+.retailer-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.retailer-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.redeem-button {
+  width: 100%;
+  padding: 12px;
+  background: #004879;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.redeem-button:hover {
+  background: #003c66;
+}
+
+.progress-to-next {
+  text-align: center;
+  color: #4b5563;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-modal {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.confirmation-modal h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.close-button {
+  margin-top: 16px;
+  padding: 8px 24px;
+  background: #004879;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  background: #003c66;
+}
+
+@media (max-width: 768px) {
+  .points-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .retailers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

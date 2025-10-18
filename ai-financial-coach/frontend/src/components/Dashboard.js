@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
+import SpendingBreakdown from './SpendingBreakdown';
+import SavingsHistory from './SavingsHistory';
+import Rewards from './Rewards';
 import './Dashboard.css';
 
 const Dashboard = ({ onBack }) => {
@@ -64,17 +67,27 @@ const Dashboard = ({ onBack }) => {
   // Safely destructure with defaults
   const needsTotal = analysisData?.needsTotal || 0;
   const wantsTotal = analysisData?.wantsTotal || 0;
+  const totalSpending = analysisData?.totalSpending || (needsTotal + wantsTotal);
+  const monthlyBudget = analysisData?.monthlyBudget || 0;
+  const savingsGoal = analysisData?.savingsGoal || 500;
   const recommendation = analysisData?.recommendation || "No recommendation available.";
   const categorizedTransactions = analysisData?.categorizedTransactions || [];
 
   const pieData = [
-    { name: 'Needs', value: needsTotal, color: '#4CAF50' },
-    { name: 'Wants', value: wantsTotal, color: '#FF9800' }
+    { name: 'Needs', value: needsTotal, color: '#004879' },
+    { name: 'Wants', value: wantsTotal, color: '#d22e1e' }
   ];
-
-  const totalSpending = needsTotal + wantsTotal;
-  const savingsGoal = 500; // This would come from the backend in a real app
-  const progressPercentage = Math.min((savingsGoal - wantsTotal) / savingsGoal * 100, 100);
+  
+  // Calculate actual savings (budget - total spending)
+  const actualSavings = Math.max(0, monthlyBudget - totalSpending);
+  const savingsData = [
+    {
+      name: 'Savings',
+      amount: actualSavings,
+      color: actualSavings >= savingsGoal ? '#16a34a' : '#004897'
+    }
+  ];
+  const maxValue = Math.max(actualSavings, savingsGoal) * 1.2;
 
   return (
     <div className="dashboard-container">
@@ -87,60 +100,18 @@ const Dashboard = ({ onBack }) => {
 
       <div className="dashboard-grid">
         {/* Spending Breakdown Chart */}
-        <div className="chart-card">
-          <h3>Spending Breakdown</h3>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-color" style={{ backgroundColor: '#4CAF50' }}></div>
-              <span>Needs: ${needsTotal.toFixed(2)}</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color" style={{ backgroundColor: '#FF9800' }}></div>
-              <span>Wants: ${wantsTotal.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
+        <SpendingBreakdown 
+          needsTotal={needsTotal}
+          wantsTotal={wantsTotal}
+          totalSpending={totalSpending}
+          monthlyBudget={monthlyBudget}
+        />
 
-        {/* Savings Progress */}
-        <div className="progress-card">
-          <h3>Savings Progress</h3>
-          <div className="progress-container">
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ width: `${Math.max(0, progressPercentage)}%` }}
-              ></div>
-            </div>
-            <div className="progress-text">
-              <span>Goal: $500</span>
-              <span>{Math.max(0, progressPercentage).toFixed(1)}% Complete</span>
-            </div>
-          </div>
-          <div className="savings-summary">
-            <p>Total Spending: ${totalSpending.toFixed(2)}</p>
-            <p>Wants Spending: ${wantsTotal.toFixed(2)}</p>
-          </div>
-        </div>
+        {/* Savings History */}
+        <SavingsHistory 
+          savingsGoal={savingsGoal}
+          actualSavings={actualSavings}
+        />
 
         {/* AI Recommendation */}
         <div className="recommendation-card">
@@ -165,6 +136,9 @@ const Dashboard = ({ onBack }) => {
             ))}
           </div>
         </div>
+
+        {/* Rewards Section */}
+        <Rewards actualSavings={actualSavings} />
       </div>
     </div>
   );
