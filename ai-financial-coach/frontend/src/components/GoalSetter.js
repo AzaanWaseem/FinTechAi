@@ -54,7 +54,6 @@ const GoalSetter = ({ onComplete }) => {
                 id="goal"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                placeholder="500"
                 min="1"
                 step="0.01"
                 className="goal-input"
