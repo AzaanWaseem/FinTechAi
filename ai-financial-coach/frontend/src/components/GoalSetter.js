@@ -32,11 +32,8 @@ const GoalSetter = ({ onComplete, user }) => {
     try {
       const response = await axios.post('/api/set-goal', {
         goal: parseFloat(goal),
-<<<<<<< HEAD
-        user_id: user.id
-=======
+        user_id: user.id,
         budget: parseFloat(budget)
->>>>>>> origin/user-dashboard
       });
       
       if (response.data.status === 'success') {

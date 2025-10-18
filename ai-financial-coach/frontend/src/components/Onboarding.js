@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Onboarding.css';
 
-const Onboarding = ({ onComplete }) => {
+const Onboarding = ({ onComplete, user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -11,7 +11,10 @@ const Onboarding = ({ onComplete }) => {
     setError('');
     
     try {
-      const response = await axios.post('/api/onboard', {});
+      const response = await axios.post('/api/onboard', {
+        email: user.email,
+        name: user.name
+      });
       
       if (response.data.customerId && response.data.accountId) {
         onComplete();
