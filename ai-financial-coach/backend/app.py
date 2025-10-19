@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 from nessie_client import NessieClient
 from gemini_client import GeminiClient
+from mediastack_client import MediastackClient
 from apscheduler.schedulers.background import BackgroundScheduler
 import json
 
@@ -18,8 +19,8 @@ user_session_state = {
     "customer_id": None,
     "account_id": None,
     "savings_goal": 0,
-    # store additional mock transactions per account (account_id -> [ {id,description, amount, source}, ... ])
-    "mock_transactions": {}
+    "monthly_budget": 0,
+    "saved_stocks": []  # list of {symbol, name}
 }
 # Note: tracks transactions the user has chosen to remove/hide (account_id -> [ id | {description, amount} ])
 user_session_state.setdefault('removed_transactions', {})
@@ -27,6 +28,7 @@ user_session_state.setdefault('removed_transactions', {})
 # Initialize clients
 nessie_client = NessieClient()
 gemini_client = GeminiClient()
+mediastack_client = MediastackClient()
 
 def analyze_spending():
     """Main function to analyze user spending patterns"""
@@ -37,8 +39,19 @@ def analyze_spending():
         if not account_id:
             return {"error": "No account found. Please complete onboarding first."}
         
-        # Get transactions
-        transactions = nessie_client.get_transactions(account_id)
+        # Get transactions (prefer Nessie; fall back to synthesized mock if Nessie unavailable
+        transactions = []
+        try:
+            if nessie_client._test_api_connection():
+                transactions = nessie_client.get_transactions(account_id)
+            else:
+                # Use synthesized mock transactions when Nessie is down/unreachable
+                mock_base = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                transactions = mock_base
+        except Exception:
+            # Hard fallback to synthesized transactions if fetching failed
+            mock_base = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+            transactions = mock_base
         # Merge any in-memory mock transactions the user added via UI
         mock_tx = user_session_state.get('mock_transactions', {}).get(account_id, [])
         if mock_tx:
@@ -131,24 +144,28 @@ def analyze_spending():
         # Calculate totals
         needs_total = sum(tx['amount'] for tx in categorized_transactions if tx['category'] == 'Need')
         wants_total = sum(tx['amount'] for tx in categorized_transactions if tx['category'] == 'Want')
-        
+
         # Get AI recommendation
-        want_transactions = [tx['description'] for tx in categorized_transactions if tx['category'] == 'Want']
+        # Provide detailed want transactions (description + amount) so AI can make
+        # transaction-specific suggestions.
+        want_transactions = [f"{tx.get('description','')} (${tx.get('amount',0):.2f})" for tx in categorized_transactions if tx['category'] == 'Want']
         recommendation = gemini_client.get_recommendation(needs_total, wants_total, savings_goal, want_transactions)
-        
+
         if not recommendation:
             # Fallback recommendation
             if wants_total > savings_goal * 0.5:
                 recommendation = f"Consider reducing your 'Want' spending of ${wants_total:.2f} to better meet your ${savings_goal} savings goal!"
             else:
                 recommendation = f"Great job! You're on track with your ${savings_goal} savings goal. Keep it up!"
-        
+
         return {
             "needsTotal": needs_total,
             "wantsTotal": wants_total,
+            "totalSpending": needs_total + wants_total,
+            "monthlyBudget": user_session_state.get("monthly_budget", 0),
+            "savingsGoal": savings_goal,
             "recommendation": recommendation,
-            "categorizedTransactions": categorized_transactions,
-            "savingsGoal": savings_goal
+            "categorizedTransactions": categorized_transactions
         }
         
         
@@ -160,8 +177,43 @@ def analyze_spending():
 def onboard():
     """Create a new customer and account, seed with transactions"""
     try:
+        # Quick pre-checks for helpful errors: API key present and Nessie reachable
+        if not getattr(nessie_client, 'api_key', None):
+            return jsonify({"error": "Nessie API key is not configured. Copy backend/env_template.txt to .env and add NESSIE_API_KEY."}), 400
+
+        # Attempt to use Nessie; if unreachable, fall back to mock onboarding so users can continue
+        use_mock = False
+        try:
+            if not nessie_client._test_api_connection():
+                use_mock = True
+        except Exception:
+            use_mock = True
+
+        if use_mock:
+            # Create a mock customer/account and seed in-memory transactions so the app works offline
+            try:
+                customer_id, account_id = nessie_client._create_mock_customer_and_account()
+            except Exception:
+                # very defensive: ensure ids exist
+                customer_id, account_id = ("mock_customer", "mock_account")
+            user_session_state["customer_id"] = customer_id
+            user_session_state["account_id"] = account_id
+            # seed synthesized transactions into the in-memory store for this account
+            try:
+                synth = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                user_session_state.setdefault('mock_transactions', {})
+                user_session_state['mock_transactions'][account_id] = synth
+            except Exception as e:
+                print(f"Error generating mock transactions: {e}")
+            return jsonify({
+                "customerId": customer_id,
+                "accountId": account_id,
+                "warning": "Using mock data because Nessie API is unreachable."
+            }), 200
+
+        # Real Nessie path
         customer_id, account_id = nessie_client.create_customer_and_account()
-        
+
         if customer_id and account_id:
             user_session_state["customer_id"] = customer_id
             user_session_state["account_id"] = account_id
@@ -169,7 +221,8 @@ def onboard():
                 nessie_client.seed_transactions(account_id)
             except Exception as e:
                 print(f"Error during seeding: {e}")
-                return jsonify({"error": "Failed to seed transactions on Nessie"}), 500
+                # still return customer/account so user can proceed, but warn
+                return jsonify({"customerId": customer_id, "accountId": account_id, "warning": "Account created but seeding transactions failed."}), 200
 
             return jsonify({
                 "customerId": customer_id,
@@ -177,25 +230,35 @@ def onboard():
             })
         else:
             return jsonify({"error": "Failed to create account"}), 500
-            
+
     except Exception as e:
         print(f"Error in onboard: {e}")
-        return jsonify({"error": "Failed to create your financial account. Please try again."}), 500
+        # return the exception message to help debugging in dev environments
+        return jsonify({"error": f"Failed to create your financial account: {str(e)}"}), 500
 
 @app.route('/api/set-goal', methods=['POST'])
 def set_goal():
-    """Set the user's monthly savings goal"""
+    """Set the user's monthly savings goal and budget"""
     try:
         data = request.get_json()
         goal = data.get('goal', 0)
+        budget = data.get('budget', 0)
         
         if goal <= 0:
             return jsonify({"error": "Goal must be greater than 0"}), 400
         
+        if budget <= 0:
+            return jsonify({"error": "Budget must be greater than 0"}), 400
+            
+        if goal > budget:
+            return jsonify({"error": "Savings goal cannot be greater than budget"}), 400
+        
         user_session_state["savings_goal"] = goal
+        user_session_state["monthly_budget"] = budget
         return jsonify({
             "status": "success",
-            "goalSet": goal
+            "goalSet": goal,
+            "budgetSet": budget
         })
         
     except Exception as e:
@@ -246,6 +309,26 @@ def health():
     return jsonify({"status": "healthy", "message": "AI Financial Coach API is running"})
 
 
+@app.route('/api/nessie-health', methods=['GET'])
+def nessie_health():
+    """Check Nessie API key and connectivity"""
+    try:
+        if not getattr(nessie_client, 'api_key', None):
+            return jsonify({"status": "error", "message": "NESSIE_API_KEY not set in backend .env"}), 400
+        ok = False
+        try:
+            ok = nessie_client._test_api_connection()
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Connectivity test failed: {str(e)}"}), 502
+
+        if ok:
+            return jsonify({"status": "ok", "message": "Nessie reachable"})
+        else:
+            return jsonify({"status": "error", "message": "Nessie API not reachable"}), 502
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Unexpected error: {str(e)}"}), 500
+
+
 @app.route('/api/seed-transactions', methods=['POST'])
 def seed_transactions():
     """Seed mock transactions for the current account"""
@@ -254,7 +337,13 @@ def seed_transactions():
         if not account_id:
             return jsonify({"error": "No account found. Please complete onboarding first."}), 400
         try:
-            nessie_client.seed_transactions(account_id)
+            # If Nessie is reachable, seed via API; otherwise, seed local in-memory list
+            if nessie_client._test_api_connection():
+                nessie_client.seed_transactions(account_id)
+            else:
+                synth = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                user_session_state.setdefault('mock_transactions', {})
+                user_session_state['mock_transactions'][account_id] = synth
             return jsonify({"status": "success", "message": "Transactions seeded"})
         except Exception as e:
             print(f"Error seeding transactions: {e}")
@@ -262,6 +351,232 @@ def seed_transactions():
     except Exception as e:
         print(f"Error seeding transactions: {e}")
         return jsonify({"error": "Failed to seed transactions"}), 500
+
+
+@app.route('/api/stocks-trending', methods=['GET'])
+def stocks_trending():
+    """Get 3 trending buy and 3 sell stock ideas with descriptions via Gemini.
+    Supports optional refresh parameters:
+      - avoid: comma-separated symbols to avoid repeating
+      - seed: arbitrary string/number to inject into prompt for variety
+      - temperature: float to increase diversity
+    This is general information, not financial advice.
+    """
+    try:
+        avoid = request.args.get('avoid', '')
+        avoid_symbols = [s.strip().upper() for s in avoid.split(',') if s.strip()] if avoid else []
+        seed = request.args.get('seed', None)
+        temperature = request.args.get('temperature', None)
+        reset_history = str(request.args.get('reset', 'false')).lower() in ('1', 'true', 'yes')
+        temp_val = None
+        try:
+            if temperature is not None:
+                temp_val = float(temperature)
+        except Exception:
+            temp_val = None
+
+        # Maintain a history of shown symbols to strongly avoid repeats
+        if reset_history:
+            user_session_state['trending_history'] = {'seen': []}
+        hist = user_session_state.get('trending_history', {'seen': []})
+        seen_list = hist.get('seen') or []
+        seen_set = set([str(s).upper() for s in seen_list])
+
+        # Also avoid the immediately previous set
+        last = user_session_state.get('last_trending', {"buys": [], "sells": []})
+        last_symbols = [s.get('symbol') for s in (last.get('buys') or [])] + [s.get('symbol') for s in (last.get('sells') or [])]
+        last_symbols = [str(s or '').upper() for s in last_symbols if s]
+
+        # Build merged avoidance list (provided avoid + last + seen history)
+        merged_avoid = sorted(set((avoid_symbols or []) + last_symbols + list(seen_set))) or None
+
+        import time as _time
+
+        def to_upper_list(items):
+            return [str(x or '').upper() for x in items if x]
+
+        # Attempt multiple times to gather unseen candidates
+        buys_pool = []
+        sells_pool = []
+        max_attempts = 4
+        base_temp = temp_val if temp_val is not None else 0.95
+        current_avoid = set(merged_avoid or [])
+        for i in range(max_attempts):
+            s = seed if i == 0 and seed is not None else f"{seed or 'seed'}-{_time.time_ns()}-{i}"
+            t = min(1.0, base_temp + i * 0.02)
+            data_try = gemini_client.get_trending_stocks(
+                avoid_symbols=sorted(current_avoid) if current_avoid else None,
+                seed=s,
+                temperature=t
+            )
+            try:
+                new_buys = [it for it in (data_try.get('buys') or []) if str((it.get('symbol') or '')).upper() not in seen_set]
+                new_sells = [it for it in (data_try.get('sells') or []) if str((it.get('symbol') or '')).upper() not in seen_set]
+            except Exception:
+                new_buys, new_sells = [], []
+            # Append unseen first
+            buys_pool.extend(new_buys)
+            sells_pool.extend(new_sells)
+            # Expand avoid with everything we just saw to push variety
+            try:
+                current_avoid.update(to_upper_list([x.get('symbol') for x in (data_try.get('buys') or [])]))
+                current_avoid.update(to_upper_list([x.get('symbol') for x in (data_try.get('sells') or [])]))
+            except Exception:
+                pass
+            # Early exit if we already have enough unseen
+            if len(buys_pool) >= 3 and len(sells_pool) >= 3:
+                break
+
+        # Deduplicate while preserving order
+        def dedupe(items):
+            seen_local = set()
+            out = []
+            for it in items:
+                key = str((it.get('symbol') or '')).upper()
+                if key and key not in seen_local:
+                    out.append(it)
+                    seen_local.add(key)
+            return out
+
+        buys_pool = dedupe(buys_pool)
+        sells_pool = dedupe(sells_pool)
+
+        # If still not enough unseen, try a final Gemini call and then fallback pool respecting avoid
+        if len(buys_pool) < 3 or len(sells_pool) < 3:
+            extra = gemini_client.get_trending_stocks(
+                avoid_symbols=sorted(current_avoid) if current_avoid else None,
+                seed=f"final-{_time.time_ns()}",
+                temperature=1.0
+            )
+            try:
+                buys_pool.extend([it for it in (extra.get('buys') or []) if str((it.get('symbol') or '')).upper() not in seen_set])
+                sells_pool.extend([it for it in (extra.get('sells') or []) if str((it.get('symbol') or '')).upper() not in seen_set])
+            except Exception:
+                pass
+            buys_pool = dedupe(buys_pool)
+            sells_pool = dedupe(sells_pool)
+        if len(buys_pool) < 3 or len(sells_pool) < 3:
+            fb = gemini_client._fallback_trending_stocks(avoid_symbols=sorted(current_avoid) if current_avoid else None)
+            try:
+                buys_pool.extend(fb.get('buys', []))
+                sells_pool.extend(fb.get('sells', []))
+            except Exception:
+                pass
+            buys_pool = dedupe(buys_pool)
+            sells_pool = dedupe(sells_pool)
+
+        # Final selection: first 3 of each
+        buys_out = buys_pool[:3] if len(buys_pool) >= 3 else (buys_pool + (last.get('buys') or []))[:3]
+        sells_out = sells_pool[:3] if len(sells_pool) >= 3 else (sells_pool + (last.get('sells') or []))[:3]
+
+        data = {
+            'buys': buys_out,
+            'sells': sells_out,
+            'disclaimer': (last.get('disclaimer') if isinstance(last, dict) else None) or 'This content is for general informational purposes only and is not financial advice.'
+        }
+
+        # Persist current as last and update history
+        try:
+            user_session_state['last_trending'] = {'buys': buys_out[:], 'sells': sells_out[:]}
+            new_seen = list(seen_set)
+            for it in buys_out + sells_out:
+                sym = str((it.get('symbol') or '')).upper()
+                if sym and sym not in new_seen:
+                    new_seen.append(sym)
+            user_session_state['trending_history'] = {'seen': new_seen}
+        except Exception:
+            pass
+
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in stocks_trending: {e}")
+        return jsonify({
+            "buys": [],
+            "sells": [],
+            "disclaimer": "Unable to retrieve ideas right now. Try again later."
+        }), 500
+
+
+@app.route('/api/stocks/save', methods=['POST'])
+def save_stocks():
+    """Save selected stocks (from buys/sells) into session for the user."""
+    try:
+        data = request.get_json() or {}
+        items = data.get('stocks', [])
+        if not isinstance(items, list):
+            return jsonify({"error": "stocks must be a list"}), 400
+        # Deduplicate by symbol
+        existing = {s.get('symbol') for s in user_session_state.get('saved_stocks', [])}
+        for it in items:
+            sym = (it.get('symbol') or '').upper()
+            name = it.get('name') or sym
+            if sym and sym not in existing:
+                user_session_state['saved_stocks'].append({'symbol': sym, 'name': name})
+                existing.add(sym)
+        return jsonify({"status": "saved", "count": len(user_session_state['saved_stocks'])})
+    except Exception as e:
+        print(f"Error in save_stocks: {e}")
+        return jsonify({"error": "Failed to save stocks"}), 500
+
+
+@app.route('/api/stocks/saved', methods=['GET'])
+def get_saved_stocks():
+    """Return saved stocks along with a buy/hold/sell verdict from Gemini."""
+    try:
+        saved = user_session_state.get('saved_stocks', [])
+        ratings = gemini_client.rate_stocks(saved)
+        ratings_list = ratings.get('ratings', [])
+        saved_by_sym = {(s.get('symbol') or '').upper(): s for s in saved}
+        # Enrich reasons using Mediastack headlines where possible
+        enriched = []
+        try:
+            for r in ratings_list:
+                sym = (r.get('symbol') or '').upper()
+                name = (saved_by_sym.get(sym, {}).get('name')) or r.get('name') or sym
+                reason = r.get('reason') or ''
+                news_reason = mediastack_client.get_reason_for_stock(sym, name)
+                if news_reason:
+                    # Attach the news headline as an addendum for transparency
+                    if reason:
+                        reason = f"{reason} — {news_reason}"
+                    else:
+                        reason = news_reason
+                enriched.append({**r, 'reason': reason})
+        except Exception:
+            # If anything fails, fall back to original ratings
+            enriched = ratings_list
+
+        return jsonify({'saved': saved, 'ratings': enriched})
+    except Exception as e:
+        print(f"Error in get_saved_stocks: {e}")
+        return jsonify({'saved': [], 'ratings': []}), 500
+
+
+@app.route('/api/credit-cards', methods=['GET'])
+def recommend_credit_cards():
+    """Recommend top credit cards based on user's spending (uses Gemini with safe fallback)."""
+    try:
+        # Reuse current analysis to derive categories and recent transaction descriptions
+        analysis_result = analyze_spending()
+        if 'error' in analysis_result:
+            # proceed with minimal info if possible
+            tx_desc = []
+            cats = []
+        else:
+            txs = analysis_result.get('categorizedTransactions', [])
+            # favor wants/needs categories to infer rewards usefulness
+            tx_desc = [t.get('description', '') for t in txs[-40:]]  # last 40 for relevance
+            # approximate categories present
+            cats = list({(t.get('category') or '').lower() for t in txs if t.get('category')})
+
+        data = gemini_client.recommend_credit_cards(tx_desc, approx_categories=cats)
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in recommend_credit_cards: {e}")
+        return jsonify({
+            "cards": [],
+            "disclaimer": "Unable to retrieve recommendations right now. Try again later."
+        }), 500
 
 
 @app.route('/api/add-transaction', methods=['POST'])
@@ -389,13 +704,18 @@ def run_scheduled_analysis():
     except Exception as e:
         print(f"❌ Scheduled analysis error: {e}")
 
-# Configure scheduler
+# Configure scheduler (start only once; avoid double-start with Flask reloader)
 scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(run_scheduled_analysis, 'interval', days=7)
-scheduler.start()
 
 if __name__ == '__main__':
     print("🚀 Starting AI Financial Coach Backend...")
     print("📊 Scheduler configured for weekly analysis")
     print("🔑 Make sure to set NESSIE_API_KEY and GEMINI_API_KEY in .env file")
-    app.run(debug=True, port=5002)
+    try:
+        if not scheduler.running:
+            scheduler.start()
+    except Exception as e:
+        print(f"⚠️  Scheduler start skipped: {e}")
+    # Disable the debug reloader to avoid double imports that can re-start the scheduler
+    app.run(debug=True, port=5002, use_reloader=False)
