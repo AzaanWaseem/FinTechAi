@@ -52,10 +52,10 @@ const Onboarding = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="max-w-xl w-full bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-        <h1 className="text-2xl font-semibold text-[#0b1f3a] mb-2">Welcome to AI Financial Coach</h1>
-        <p className="text-gray-600 mb-4">We'll create a demo account and analyze your spending to provide personalized insights.</p>
+  <div className="center-screen">
+    <div className="welcome-box">
+        <h1 className="text-3xl font-bold text-center text-[#0b1f3a] mb-3">Capital One's AI Financial Advisor</h1>
+        <p className="text-gray-600 text-center mb-6">We'll create a demo account and analyze your spending to provide personalized insights.</p>
 
         {/* Nessie health banner */}
         {nessieStatus && !nessieStatus.ok && (
@@ -66,25 +66,28 @@ const Onboarding = ({ onComplete }) => {
           <div className="mb-4 p-3 rounded bg-red-50 text-red-700 border border-red-100">{error}</div>
         )}
 
-        <button 
-          className="w-full bg-[#004897] hover:bg-[#00356a] text-white font-medium py-3 rounded-lg mb-6 disabled:opacity-60"
-          onClick={handleStartJourney}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Creating Account...' : 'Start Your Journey'}
-        </button>
+        <div className="features text-sm">
+          <h3 className="font-medium mb-2 text-center">What you'll get:</h3>
+          <div className="features-text text-center text-base leading-7">
+            <p><span className="feature-check">✓</span> AI-powered spending analysis</p>
+            <p><span className="feature-check">✓</span> Personalized savings recommendations</p>
+            <p><span className="feature-check">✓</span> Interactive financial dashboard</p>
+            <p><span className="feature-check">✓</span> Investment education when you reach your goals</p>
+          </div>
+        </div>
 
-        <div className="features text-sm text-gray-700">
-          <h3 className="font-medium mb-2">What you'll get:</h3>
-          <ul className="space-y-2">
-            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> AI-powered spending analysis</li>
-            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Personalized savings recommendations</li>
-            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Interactive financial dashboard</li>
-            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Investment education when you reach your goals</li>
-          </ul>
+        <div className="mt-6">
+          <button
+            className="btn btn-primary w-full"
+            onClick={handleStartJourney}
+            disabled={isLoading}
+            aria-disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Start Your Journey'}
+          </button>
+        </div>
         </div>
       </div>
-    </div>
   );
 };
 
