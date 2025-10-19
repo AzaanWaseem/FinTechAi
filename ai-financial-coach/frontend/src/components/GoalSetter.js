@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './GoalSetter.css';
 
 const GoalSetter = ({ onComplete }) => {
   const [goal, setGoal] = useState('');
@@ -49,18 +48,22 @@ const GoalSetter = ({ onComplete }) => {
   };
 
   return (
-    <div className="goal-setter-container">
-      <div className="goal-setter-card">
-        <h1>Set Your Financial Goals</h1>
-        <p className="subtitle">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center px-4 py-12">
+      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
+        <h1 className="text-4xl font-bold text-[#004977] mb-3 text-center">
+          Set Your Financial Goals
+        </h1>
+        <p className="text-gray-600 text-center mb-8">
           Set your monthly budget and savings goal to get personalized financial insights.
         </p>
         
-        <form onSubmit={handleSetGoal} className="goal-form">
-          <div className="input-group">
-            <label htmlFor="budget">Monthly Budget:</label>
-            <div className="input-wrapper">
-              <span className="currency-symbol">$</span>
+        <form onSubmit={handleSetGoal} className="space-y-6">
+          <div>
+            <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-2">
+              Monthly Budget:
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
               <input
                 type="number"
                 id="budget"
@@ -69,15 +72,17 @@ const GoalSetter = ({ onComplete }) => {
                 placeholder="3000"
                 min="1"
                 step="0.01"
-                className="goal-input"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent text-lg"
               />
             </div>
           </div>
           
-          <div className="input-group">
-            <label htmlFor="goal">Monthly Savings Goal:</label>
-            <div className="input-wrapper">
-              <span className="currency-symbol">$</span>
+          <div>
+            <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-2">
+              Monthly Savings Goal:
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
               <input
                 type="number"
                 id="goal"
@@ -86,34 +91,49 @@ const GoalSetter = ({ onComplete }) => {
                 placeholder="500"
                 min="1"
                 step="0.01"
-                className="goal-input"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent text-lg"
               />
             </div>
           </div>
           
           {error && (
-            <div className="error-message">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
               {error}
             </div>
           )}
           
           <button 
             type="submit"
-            className="set-goal-button"
+            className="w-full bg-[#004977] text-white py-4 rounded-lg font-semibold text-lg hover:bg-[#003a5d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? 'Setting Goal...' : 'Set My Goal'}
           </button>
         </form>
         
-        <div className="goal-tips">
-            <h3>Tips for setting your goals</h3>
-          <ul>
-            <li>Budget should include all your monthly expenses</li>
-            <li>Savings goal should be 10-20% of your budget</li>
-            <li>Consider your essential expenses first</li>
-            <li>You can always adjust these later</li>
-            <li>Even small amounts add up over time!</li>
+        <div className="mt-8 bg-blue-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">💡 Tips for setting your goals</h3>
+          <ul className="space-y-2 text-gray-700">
+            <li className="flex items-start">
+              <span className="text-blue-500 mr-2">•</span>
+              <span>Budget should include all your monthly expenses</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-500 mr-2">•</span>
+              <span>Savings goal should be 10-20% of your budget</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-500 mr-2">•</span>
+              <span>Consider your essential expenses first</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-500 mr-2">•</span>
+              <span>You can always adjust these later</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-500 mr-2">•</span>
+              <span>Even small amounts add up over time!</span>
+            </li>
           </ul>
         </div>
       </div>

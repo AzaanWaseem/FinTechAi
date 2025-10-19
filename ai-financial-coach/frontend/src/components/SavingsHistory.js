@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './SavingsHistory.css';
 
 const SavingsHistory = ({ savingsGoal, actualSavings }) => {
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'quarter'

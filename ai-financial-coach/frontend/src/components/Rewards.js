@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Rewards.css';
 
 const POINTS_PER_DOLLAR = 0.01;
 const POINTS_PER_REWARD = 10;

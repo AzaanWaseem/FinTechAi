@@ -1,6 +1,5 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
-import './SpendingBreakdown.css';
 
 const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudget }) => {
   const data = [

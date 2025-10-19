@@ -4,7 +4,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import SpendingBreakdown from './SpendingBreakdown';
 import SavingsHistory from './SavingsHistory';
 import Rewards from './Rewards';
-import './Dashboard.css';
 
 const Dashboard = ({ onBack }) => {
   const [analysisData, setAnalysisData] = useState(null);
