@@ -82,8 +82,14 @@ const Onboarding = ({ onComplete }) => {
             onClick={handleStartJourney}
             disabled={isLoading}
             aria-disabled={isLoading}
+            style={isLoading ? { opacity: 0.7, pointerEvents: 'none' } : {}}
           >
-            {isLoading ? 'Creating Account...' : 'Start Your Journey'}
+            {isLoading ? (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <span className="spinner" style={{ width: 22, height: 22, border: '3px solid #fff', borderTop: '3px solid #2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
+                Creating Account...
+              </span>
+            ) : 'Start Your Journey'}
           </button>
         </div>
         </div>

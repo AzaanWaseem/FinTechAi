@@ -59,11 +59,24 @@ const GoalSetter = ({ onComplete }) => {
         
         <form onSubmit={handleSetGoal} className="space-y-6">
           <div>
-            <label htmlFor="budget" className="block text-sm font-medium text-white mb-2 text-left">
+            <label htmlFor="budget" className="block text-sm font-medium text-white mb-2 text-leftm font-medium">
               Monthly Budget:
             </label>
             <div className="relative">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-semibold">$</span>
+              <span
+                className="absolute"
+                style={{
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  background: 'transparent',
+                  paddingRight: '2px'
+                }}
+              >$
+              </span>
               <input
                 type="number"
                 id="budget"
@@ -71,19 +84,32 @@ const GoalSetter = ({ onComplete }) => {
                 onChange={(e) => setBudget(e.target.value)}
                 placeholder=""
                 min="1"
-                step="0.01"
+                step="1"
                 className="w-full pr-5 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent bg-white shadow-md"
-                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '40px', fontSize: '1.5rem' }}
+                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '16px', fontSize: '1.5rem' }}
               />
             </div>
           </div>
           
           <div className="mt-12">
-            <label htmlFor="goal" className="block text-sm font-medium text-white mb-2 text-left">
+            <label htmlFor="goal" className="block text-sm font-medium text-white mb-2 text-left font-medium">
               Monthly Savings Goal:
             </label>
             <div className="relative">
-              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-semibold">$</span>
+              <span
+                className="absolute"
+                style={{
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  background: 'transparent',
+                  paddingRight: '2px'
+                }}
+              >$
+              </span>
               <input
                 type="number"
                 id="goal"
@@ -91,9 +117,9 @@ const GoalSetter = ({ onComplete }) => {
                 onChange={(e) => setGoal(e.target.value)}
                 placeholder=""
                 min="1"
-                step="0.01"
+                step="1"
                 className="w-full pr-5 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent bg-white shadow-md"
-                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '40px', fontSize: '1.5rem' }}
+                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '16px', fontSize: '1.5rem' }}
               />
             </div>
           </div>

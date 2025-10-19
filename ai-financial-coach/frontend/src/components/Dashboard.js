@@ -79,9 +79,9 @@ const Dashboard = ({ onBack }) => {
 
   if (isLoading) {
     return (
-      <div className="dashboard-container">
-        <div className="loading">
-          <h2>Analyzing Your Finances... 📊</h2>
+      <div className="dashboard-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div className="loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <h2 style={{ textAlign: 'center' }}>Analyzing Your Finances... 📊</h2>
           <div className="spinner"></div>
         </div>
       </div>
