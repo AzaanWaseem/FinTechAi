@@ -81,8 +81,24 @@ const Dashboard = ({ onBack }) => {
     return (
       <div className="dashboard-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
         <div className="loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <h2 style={{ textAlign: 'center' }}>Analyzing Your Finances... 📊</h2>
-          <div className="spinner"></div>
+          <h2 style={{ textAlign: 'center', marginBottom: 24 }}>Analyzing Your Finances... 📊</h2>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              border: '6px solid #e5e7eb',
+              borderTop: '6px solid #2563eb',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              marginBottom: 8
+            }}
+          />
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     );
