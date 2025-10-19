@@ -7,6 +7,13 @@ import StocksCard from './StocksCard';
 import SavedStocksCard from './SavedStocksCard';
 import BestCards from './BestCards';
 
+// Helper to generate a random date between July 1 and October 31, 2025
+function randomDateJulyToOctober() {
+  const start = new Date('2025-07-01T00:00:00Z').getTime();
+  const end = new Date('2025-10-31T23:59:59Z').getTime();
+  const date = new Date(start + Math.random() * (end - start));
+  return date;
+}
 const Dashboard = ({ onBack }) => {
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +22,7 @@ const Dashboard = ({ onBack }) => {
   const [newDescription, setNewDescription] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [removeMode, setRemoveMode] = useState(false);
+  // store ids as strings to avoid number/string mismatches from API
   const [selectedTxIds, setSelectedTxIds] = useState([]);
 
   useEffect(() => {
@@ -88,29 +96,68 @@ const Dashboard = ({ onBack }) => {
   const wantsTotal = analysisData?.wantsTotal || 0;
   const monthlyBudget = analysisData?.monthlyBudget || 0;
   const savingsGoal = analysisData?.savingsGoal || 500;
-  const categorizedTransactions = analysisData?.categorizedTransactions || [];
+  let categorizedTransactions = analysisData?.categorizedTransactions || [];
+  // Assign a stable random date in the past 4 months (July to October 2025) to each transaction if not present, and persist in localStorage
+  // Also, always categorize groceries as 'Need'
+  const txDateKey = 'txDateMap2025';
+  let txDateMap = {};
+  try {
+    txDateMap = JSON.parse(localStorage.getItem(txDateKey)) || {};
+  } catch (e) { txDateMap = {}; }
 
-  // Compute totals for the displayed slice (most recent 10) so the chart matches
-  // the visible list, but also compute full totals for components that should
-  // reflect all data (SavingsHistory, Rewards).
-  const displayedTransactions = categorizedTransactions.slice(-10).reverse();
+  function getStableDate(tx) {
+    // Use a stable hash to assign a month (July, Aug, Sep, Oct)
+    let seed = String(tx.id || tx.description || '') + String(tx.amount);
+    let hash = 0;
+    for (let j = 0; j < seed.length; j++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(j);
+      hash |= 0;
+    }
+    // There are 4 months: July (6), Aug (7), Sep (8), Oct (9)
+    const months = [6, 7, 8, 9];
+    const monthIdx = Math.abs(hash) % months.length;
+    const year = 2025;
+    // Random day in month (1-28 for safety)
+    const day = 1 + (Math.abs(hash) % 28);
+    return new Date(year, months[monthIdx], day, 12, 0, 0, 0);
+  }
+
+  categorizedTransactions = categorizedTransactions.map((tx, i) => {
+    // Always categorize groceries as 'Need'
+    let category = tx.category;
+    if (tx.description && tx.description.toLowerCase().includes('grocer')) {
+      category = 'Need';
+    }
+    // Assign stable date and persist in localStorage
+    let date = tx.date;
+    const txKey = String(tx.id || tx.description || '') + String(tx.amount);
+    if (!date) {
+      if (txDateMap[txKey]) {
+        date = new Date(txDateMap[txKey]);
+      } else {
+        date = getStableDate(tx);
+        txDateMap[txKey] = date.toISOString();
+        try { localStorage.setItem(txDateKey, JSON.stringify(txDateMap)); } catch (e) {}
+      }
+    } else {
+      date = new Date(date);
+    }
+    return { ...tx, date, category };
+  });
+
+
+  // Sort transactions in reverse chronological order by date
+  const displayedTransactions = categorizedTransactions.slice().sort((a, b) => b.date - a.date);
   const displayedNeedsTotal = displayedTransactions.reduce((acc, t) => acc + (t.category === 'Need' ? Number(t.amount || 0) : 0), 0);
   const displayedWantsTotal = displayedTransactions.reduce((acc, t) => acc + (t.category === 'Want' ? Number(t.amount || 0) : 0), 0);
   const displayedTotalSpending = displayedNeedsTotal + displayedWantsTotal;
-
-  // Full totals across all transactions (not just the last 10). Use these for
-  // components that expect the complete dataset.
-  const fullNeedsTotal = categorizedTransactions.reduce((acc, t) => acc + (t.category === 'Need' ? Number(t.amount || 0) : 0), 0);
-  const fullWantsTotal = categorizedTransactions.reduce((acc, t) => acc + (t.category === 'Want' ? Number(t.amount || 0) : 0), 0);
-  const fullTotalSpending = fullNeedsTotal + fullWantsTotal;
-
-  // compute progress and estimated savings
-  // Progress visual uses displayed wants total so it lines up with the chart,
-  // but actual savings for Rewards and SavingsHistory should consider the full
-  // dataset.
+  // For compatibility, keep these as aliases
+  const fullNeedsTotal = displayedNeedsTotal;
+  const fullWantsTotal = displayedWantsTotal;
+  const fullTotalSpending = displayedTotalSpending;
   const progressPercentage = savingsGoal > 0 ? Math.min((savingsGoal - displayedWantsTotal) / savingsGoal * 100, 100) : 0;
   const actualSavingsDisplayed = Math.max(0, savingsGoal - displayedWantsTotal);
-  const actualSavingsFull = Math.max(0, savingsGoal - fullWantsTotal);
+  const actualSavingsFull = actualSavingsDisplayed;
 
   // Generate personalized AI recommendation based on budget status
   const generatePersonalizedRecommendation = () => {
@@ -225,35 +272,41 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
         <div className="dashboard-header" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <h2 style={{ margin: 0 }}>Your Financial Dashboard</h2>
           {/* Stat chips: Budget / Spent / Remaining */}
+          {/* Stat chips: Budget / Spent / Remaining (use only current month transactions) */}
           <div className="stat-chips">
             <div className="chip chip-budget" title="Monthly Budget">
               <span className="dot" /> Budget
               <span style={{ marginLeft: 8 }}>${monthlyBudget.toFixed(2)}</span>
             </div>
-            <div className="chip chip-spent" title="Spent (matches chart)">
-              <span className="dot" /> Spent
-              <span style={{ marginLeft: 8 }}>${displayedTotalSpending.toFixed(2)}</span>
-            </div>
-            <div className={`chip chip-remaining ${remainingBudget < 0 ? 'negative' : ''}`} title="Remaining vs budget">
-              <span className="dot" /> {remainingBudget < 0 ? 'Over' : 'Remaining'}
-              <span style={{ marginLeft: 8 }}>${Math.abs(remainingBudget).toFixed(2)}</span>
-            </div>
+            {(() => {
+              const today = new Date();
+              const currentMonthTx = displayedTransactions.filter(tx => {
+                const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+                return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+              });
+              const needsTotal = currentMonthTx.filter(t => t.category === 'Need').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+              const wantsTotal = currentMonthTx.filter(t => t.category === 'Want').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+              const totalSpending = needsTotal + wantsTotal;
+              const remainingBudget = monthlyBudget - totalSpending;
+              return (
+                <>
+                  <div className="chip chip-spent" title="Spent (matches chart)">
+                    <span className="dot" /> Spent
+                    <span style={{ marginLeft: 8 }}>${totalSpending.toFixed(2)}</span>
+                  </div>
+                  <div className={`chip chip-remaining ${remainingBudget < 0 ? 'negative' : ''}`} title="Remaining vs budget">
+                    <span className="dot" /> {remainingBudget < 0 ? 'Over' : 'Remaining'}
+                    <span style={{ marginLeft: 8 }}>${Math.abs(remainingBudget).toFixed(2)}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', width: '100%' }}>
             <button onClick={handleSeedTransactions} className="btn-primary small">Add transactions</button>
-            <button className={`btn-ghost ${removeMode ? 'active-remove' : ''}`} onClick={() => { setRemoveMode(!removeMode); if (removeMode) setSelectedTxIds([]); }}>
+            <button className={`btn-ghost ${removeMode ? 'active-remove' : ''}`} onClick={() => { setRemoveMode(!removeMode); }}>
               {removeMode ? 'Cancel Remove' : 'Remove'}
             </button>
-            {removeMode && (
-              <button className="btn-danger" onClick={async () => {
-                const displayed = categorizedTransactions.slice(-10).reverse();
-                const toRemove = displayed.filter(tx => selectedTxIds.includes(tx.id));
-                if (toRemove.length === 0) { setError('No transactions selected to remove.'); return; }
-                try { setIsLoading(true); setError(''); await Promise.all(toRemove.map(tx => axios.post('/api/remove-transaction', { id: tx.id }))); setSelectedTxIds([]); setRemoveMode(false); await fetchAnalysis(); }
-                catch (err) { console.error('Batch remove error:', err); const message = err?.response?.data?.error || err.message || 'Failed to remove selected transactions.'; setError(message); }
-                finally { setIsLoading(false); }
-              }}>Confirm Remove</button>
-            )}
             <button onClick={onBack} className="back-button">Start Over</button>
           </div>
         </div>
@@ -281,7 +334,25 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-base">
               <div className="card-scroll">
-                <SpendingBreakdown needsTotal={displayedNeedsTotal} wantsTotal={displayedWantsTotal} totalSpending={displayedTotalSpending} monthlyBudget={monthlyBudget} />
+                {/* Only use transactions from the current month for breakdown */}
+                {(() => {
+                  const today = new Date();
+                  const currentMonthTx = displayedTransactions.filter(tx => {
+                    const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+                    return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+                  });
+                  const needsTotal = currentMonthTx.filter(t => t.category === 'Need').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+                  const wantsTotal = currentMonthTx.filter(t => t.category === 'Want').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+                  const totalSpending = needsTotal + wantsTotal;
+                  return (
+                    <SpendingBreakdown
+                      needsTotal={needsTotal}
+                      wantsTotal={wantsTotal}
+                      totalSpending={totalSpending}
+                      monthlyBudget={monthlyBudget}
+                    />
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -289,7 +360,15 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-base">
               <div className="card-scroll">
-                <SavingsHistory savingsGoal={savingsGoal} actualSavings={actualSavingsFull} monthlyBudget={monthlyBudget} displayedSpent={displayedTotalSpending} />
+                {/* Pass prop to SavingsHistory to show last 3 months excluding current month */}
+                <SavingsHistory
+                  savingsGoal={savingsGoal}
+                  actualSavings={actualSavingsFull}
+                  monthlyBudget={monthlyBudget}
+                  displayedSpent={displayedTotalSpending}
+                  transactions={displayedTransactions}
+                  excludeCurrentMonth={true}
+                />
               </div>
             </div>
           </div>
@@ -314,9 +393,10 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
               <h3>Recent Transactions</h3>
               <div className="transactions-list card-scroll" style={{ marginTop: 12 }}>
                 {(() => {
-                  const recentTransactions = categorizedTransactions.slice(-10).reverse();
-                  const needs = recentTransactions.filter(t => t.category === 'Need');
-                  const wants = recentTransactions.filter(t => t.category === 'Want');
+                  // Sort all transactions in reverse chronological order by date
+                  const allTransactions = categorizedTransactions.slice().sort((a, b) => b.date - a.date);
+                  const needs = allTransactions.filter(t => t.category === 'Need');
+                  const wants = allTransactions.filter(t => t.category === 'Want');
                   
                   return (
                     <>
@@ -324,18 +404,33 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
                         <>
                           <div className="transactions-section-header needs">💙 Needs ({needs.length})</div>
                           {needs.map((transaction, index) => {
-                            const isSelected = selectedTxIds.includes(transaction.id);
+                            // Format date as 'MMM DD, YYYY'
+                            const txDate = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
+                            const dateStr = txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             return (
-                              <div key={`need-${transaction.id || index}`} className={`transaction-item ${transaction.category.toLowerCase()} ${isSelected ? 'selected-for-remove' : ''}`} onClick={() => {
+                              <div key={`need-${transaction.id || index}`} className={`transaction-item ${transaction.category.toLowerCase()}`} onClick={async () => {
                                 if (!removeMode) return;
                                 if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; }
-                                setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]);
-                              }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={(e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]); } }}>
+                                try {
+                                  setIsLoading(true);
+                                  setError('');
+                                  await axios.post('/api/remove-transaction', { id: transaction.id });
+                                  setRemoveMode(false);
+                                  await fetchAnalysis();
+                                } catch (err) {
+                                  console.error('Remove error:', err);
+                                  const message = err?.response?.data?.error || err.message || 'Failed to remove transaction.';
+                                  setError(message);
+                                } finally {
+                                  setIsLoading(false);
+                                }
+                              }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={async (e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } try { setIsLoading(true); setError(''); await axios.post('/api/remove-transaction', { id: transaction.id }); setRemoveMode(false); await fetchAnalysis(); } catch (err) { console.error('Remove error:', err); const message = err?.response?.data?.error || err.message || 'Failed to remove transaction.'; setError(message); } finally { setIsLoading(false); } } }}>
                                 <div className="transaction-info">
                                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                     <span className="transaction-description">{transaction.description}</span>
                                   </div>
                                   <span className="transaction-category">{transaction.category}</span>
+                                  <span className="transaction-date" style={{ color: '#6b7280', fontSize: '0.95em', marginLeft: 4 }}>{dateStr}</span>
                                 </div>
                                 <span className="transaction-amount">${transaction.amount.toFixed(2)}</span>
                               </div>
@@ -348,18 +443,33 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
                         <>
                           <div className="transactions-section-header wants" style={{ marginTop: needs.length > 0 ? 16 : 4 }}>🧡 Wants ({wants.length})</div>
                           {wants.map((transaction, index) => {
-                            const isSelected = selectedTxIds.includes(transaction.id);
+                            // Format date as 'MMM DD, YYYY'
+                            const txDate = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
+                            const dateStr = txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             return (
-                              <div key={`want-${transaction.id || index}`} className={`transaction-item ${transaction.category.toLowerCase()} ${isSelected ? 'selected-for-remove' : ''}`} onClick={() => {
+                              <div key={`want-${transaction.id || index}`} className={`transaction-item ${transaction.category.toLowerCase()}`} onClick={async () => {
                                 if (!removeMode) return;
                                 if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; }
-                                setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]);
-                              }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={(e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]); } }}>
+                                try {
+                                  setIsLoading(true);
+                                  setError('');
+                                  await axios.post('/api/remove-transaction', { id: transaction.id });
+                                  setRemoveMode(false);
+                                  await fetchAnalysis();
+                                } catch (err) {
+                                  console.error('Remove error:', err);
+                                  const message = err?.response?.data?.error || err.message || 'Failed to remove transaction.';
+                                  setError(message);
+                                } finally {
+                                  setIsLoading(false);
+                                }
+                              }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={async (e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } try { setIsLoading(true); setError(''); await axios.post('/api/remove-transaction', { id: transaction.id }); setRemoveMode(false); await fetchAnalysis(); } catch (err) { console.error('Remove error:', err); const message = err?.response?.data?.error || err.message || 'Failed to remove transaction.'; setError(message); } finally { setIsLoading(false); } } }}>
                                 <div className="transaction-info">
                                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                     <span className="transaction-description">{transaction.description}</span>
                                   </div>
                                   <span className="transaction-category">{transaction.category}</span>
+                                  <span className="transaction-date" style={{ color: '#6b7280', fontSize: '0.95em', marginLeft: 4 }}>{dateStr}</span>
                                 </div>
                                 <span className="transaction-amount">${transaction.amount.toFixed(2)}</span>
                               </div>

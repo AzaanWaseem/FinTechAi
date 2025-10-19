@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './Rewards.css';
 
 // Correlate points directly to dollars saved: 1 point per $1 saved
 const POINTS_PER_DOLLAR = 1;
@@ -7,19 +8,20 @@ const POINTS_PER_REWARD = 100;
 const REWARD_VALUE = 50;
 
 const popularRetailers = [
-  { name: 'Amazon', icon: '🛒' },
-  { name: 'Target', icon: '🎯' },
-  { name: 'Walmart', icon: '🏪' },
-  { name: 'Starbucks', icon: '☕' },
-  { name: 'Chipotle', icon: '🌯' },
-  { name: "McDonald's", icon: '🍔' },
-  { name: 'DoorDash', icon: '🚗' },
-  { name: 'Best Buy', icon: '🎮' }
+  { name: 'Amazon', key: 'amazon' },
+  { name: 'Target', key: 'target' },
+  { name: 'Walmart', key: 'walmart' },
+  { name: 'Starbucks', key: 'starbucks' },
+  { name: 'Chipotle', key: 'chipotle' },
+  { name: "McDonald's", key: 'mcdonalds' },
+  { name: 'DoorDash', key: 'doordash' },
+  { name: 'Best Buy', key: 'bestbuy' }
 ];
 
 const Rewards = ({ actualSavings }) => {
   const [selectedRetailer, setSelectedRetailer] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [page, setPage] = useState(0);
 
   // Defensive: coerce actualSavings to a finite number (fallback to 0).
   const safeSavings = Number(actualSavings) || 0;
@@ -28,6 +30,11 @@ const Rewards = ({ actualSavings }) => {
   const remainingPoints = POINTS_PER_REWARD > 0 ? totalPoints % POINTS_PER_REWARD : 0;
 
   const canRedeem = availableRewards > 0;
+
+  const ITEMS_PER_PAGE = 4;
+  const totalPages = Math.ceil(popularRetailers.length / ITEMS_PER_PAGE);
+  const start = page * ITEMS_PER_PAGE;
+  const pagedRetailers = popularRetailers.slice(start, start + ITEMS_PER_PAGE);
 
   const handleRewardRedeem = () => {
     if (!canRedeem) return; // guard
@@ -66,22 +73,61 @@ const Rewards = ({ actualSavings }) => {
             Get a ${REWARD_VALUE} gift card for every {POINTS_PER_REWARD} points!
           </p>
 
-          <div className="retailers-grid">
-            {popularRetailers.map((retailer) => (
-              <button
-                key={retailer.name}
-                className={`retailer-button ${selectedRetailer === retailer.name ? 'selected' : ''} ${!canRedeem ? 'disabled' : ''}`}
-                onClick={() => {
-                  if (!canRedeem) return;
-                  setSelectedRetailer(retailer.name);
-                }}
-                aria-disabled={!canRedeem}
-                tabIndex={!canRedeem ? -1 : 0}
-              >
-                <span className="retailer-icon">{retailer.icon}</span>
-                <span className="retailer-name">{retailer.name}</span>
-              </button>
-            ))}
+          <div className="retailers-wrapper">
+            <button
+              className="page-arrow"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="Previous"
+              disabled={page === 0}
+            >
+              ‹
+            </button>
+
+            <div className="retailers-grid">
+              {pagedRetailers.map((retailer) => {
+                const label = retailer.name;
+                // Prefer PNGs if they exist (designer replaced folder with PNGs); fall back to SVG
+                const pngPath = `${process.env.PUBLIC_URL}/assets/logos/${retailer.key}.png`;
+                const svgPath = `${process.env.PUBLIC_URL}/assets/logos/${retailer.key}.svg`;
+                // Use PNG by default; the browser will 404 if missing and then the SVG will be used via onError
+                const logoSrc = pngPath;
+                return (
+                  <button
+                    key={retailer.key}
+                    className={`retailer-button ${selectedRetailer === label ? 'selected' : ''} ${!canRedeem ? 'disabled' : ''}`}
+                    onClick={() => {
+                      if (!canRedeem) return;
+                      setSelectedRetailer(label);
+                    }}
+                    aria-disabled={!canRedeem}
+                    tabIndex={!canRedeem ? -1 : 0}
+                  >
+                    <img
+                      className="retailer-logo"
+                      src={logoSrc}
+                      alt={`${label} logo`}
+                      onError={(e) => {
+                        // fallback to svg if png not present
+                        if (e && e.currentTarget) e.currentTarget.src = svgPath;
+                      }}
+                    />
+                    <span className="retailer-name">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              className="page-arrow"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              aria-label="Next"
+              disabled={page >= totalPages - 1}
+            >
+              ›
+            </button>
+          </div>
+          <div className="page-indicator">
+            Page {page + 1} of {totalPages}
           </div>
 
           <button

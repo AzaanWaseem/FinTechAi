@@ -1,0 +1,37 @@
+.rewards-card{
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  font-family: inherit;
+}
+.rewards-card h3{ margin-top:0; margin-bottom:8px; }
+.rewards-summary{ display:flex; flex-direction:column; gap:14px; }
+.points-info{ display:flex; gap:18px; align-items:center; }
+.points-total{ display:flex; flex-direction:column; align-items:flex-start; }
+.points-number{ font-size:28px; font-weight:700; color:#0b3d91; }
+.points-label{ font-size:12px; color:#6b7280; }
+.points-rate p{ margin:0; color:#374151; }
+.redeem-section{ display:flex; flex-direction:column; gap:10px; }
+.reward-description{ margin:0 0 8px 0; color:#374151; }
+.retailers-wrapper{ display:flex; align-items:center; gap:12px; }
+.page-arrow{ background:#fff; border:1px solid #e5e7eb; min-width:36px; min-height:36px; border-radius:8px; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; }
+.page-arrow:disabled{ opacity:0.4; cursor:default; }
+.retailers-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; flex:1; }
+.retailer-button{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px; border-radius:8px; border:1px solid transparent; background:#f8fafc; cursor:pointer; }
+.retailer-button.disabled{ opacity:0.6; cursor:default; }
+.retailer-button.selected{ outline:3px solid #0b3d91; }
+.retailer-logo{ width:40px; height:40px; object-fit:contain; }
+.retailer-name{ font-size:12px; color:#111827; }
+.redeem-button{ margin-top:8px; padding:10px 12px; background:#0b3d91; color:white; border:none; border-radius:8px; cursor:pointer; }
+.progress-to-next p{ margin:0; color:#374151; }
+.progress-bar{ background:#eef2ff; height:10px; border-radius:6px; overflow:hidden; }
+.progress-fill{ background:#0b3d91; height:100%; }
+.page-indicator{ font-size:12px; color:#6b7280; text-align:center; margin-top:6px; }
+.confirmation-overlay{ position:fixed; left:0; top:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); }
+.confirmation-modal{ background:white; padding:18px; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.12); max-width:320px; }
+.close-button{ margin-top:8px; padding:8px 12px; border-radius:6px; background:#0b3d91; color:white; border:none; }
+
+@media (max-width:640px){
+  .retailers-grid{ grid-template-columns: repeat(2, 1fr); }
+}
