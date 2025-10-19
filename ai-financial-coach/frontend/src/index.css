@@ -138,6 +138,160 @@ a {
   box-sizing: border-box;
 }
 
+/* Dashboard page background - make it completely white */
+.dashboard-container {
+  min-height: 100vh;
+  background: #ffffff !important;
+  color: #0b1f3a;
+}
+
+/* Transaction category styling */
+.transaction-item.need {
+  background-color: #e1f5fe !important; /* Light blue background for needs */
+  border-left: 3px solid #0288d1; /* Darker blue border */
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
+.transaction-item.want {
+  background-color: #fff3e0 !important; /* Light orange background for wants */
+  border-left: 3px solid #f57c00; /* Darker orange border */
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
+/* Dashboard grid and cards */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  grid-auto-rows: 460px; /* slightly higher to fit Spending Breakdown content */
+  align-content: start; /* pack rows to the top when height reduces */
+}
+
+@media (min-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card-base {
+  padding: 28px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* contain inner scrolling */
+}
+
+/* Inner scroll area for cards */
+.card-scroll {
+  flex: 1 1 auto;
+  min-height: 0; /* allows child to actually scroll in flex column */
+  overflow: auto;
+}
+
+/* Stat chips under header */
+.stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 18px 0;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.chip-budget { background: #e6f0fb; color: #0b3b7a; }
+.chip-budget .dot { background: #2b6cb0; }
+.chip-spent { background: #fff3e0; color: #7a3b0b; }
+.chip-spent .dot { background: #f57c00; }
+.chip-remaining { background: #e8f7ef; color: #0b5a37; }
+.chip-remaining .dot { background: #16a34a; }
+.chip-remaining.negative { background: #fdecec; color: #7a0b0b; }
+.chip-remaining.negative .dot { background: #e11d48; }
+
+/* Sticky section headers inside transactions list */
+.transactions-section-header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 2;
+  padding: 6px 8px;
+  border-bottom: 1px solid #eef2f7;
+}
+.transactions-section-header.needs { color: #0288d1; }
+.transactions-section-header.wants { color: #f57c00; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* SavingsHistory styles */
+.savings-history {
+  display: flex;
+  flex-direction: column;
+}
+.history-title {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.view-selector {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.view-button {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #0b1f3a;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.view-button.active {
+  background: #e6f0fb;
+  border-color: #bfd3f0;
+  color: #0b3b7a;
+}
+.monthly-summary { margin-bottom: 14px; }
+.month-label { font-weight: 600; margin-bottom: 6px; }
+.progress-container { display: flex; flex-direction: column; gap: 6px; }
+.progress-bar {
+  position: relative;
+  height: 12px;
+  width: 100%;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 240ms ease;
+}
+.goal-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #9ca3af;
+}
+.progress-text { display: flex; justify-content: space-between; color: #374151; font-size: 12px; }

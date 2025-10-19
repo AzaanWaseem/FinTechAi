@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 
-const POINTS_PER_DOLLAR = 0.01;
-const POINTS_PER_REWARD = 10;
+// Correlate points directly to dollars saved: 1 point per $1 saved
+const POINTS_PER_DOLLAR = 1;
+// Reasonable threshold: every 100 points ($100 saved) earns a $50 reward
+const POINTS_PER_REWARD = 100;
 const REWARD_VALUE = 50;
 
 const popularRetailers = [
@@ -50,7 +52,7 @@ const Rewards = ({ actualSavings }) => {
             <span className="points-label">Total Points</span>
           </div>
           <div className="points-rate">
-            <p>{POINTS_PER_DOLLAR} points per $1 saved</p>
+            <p>{POINTS_PER_DOLLAR} point{POINTS_PER_DOLLAR === 1 ? '' : 's'} per $1 saved</p>
             <p>{availableRewards > 0 ? `${availableRewards} rewards available!` : `${Math.max(POINTS_PER_REWARD - remainingPoints, 0)} more points needed for your next reward!`}</p>
           </div>
         </div>
@@ -94,6 +96,9 @@ const Rewards = ({ actualSavings }) => {
         </div>
 
         <div className="progress-to-next">
+          <p style={{ marginTop: 0, marginBottom: 8 }}>
+            1 point per $1 saved. You currently have <strong>{Number.isFinite(totalPoints) ? totalPoints : 0}</strong> point{(Number.isFinite(totalPoints) ? totalPoints : 0) === 1 ? '' : 's'}.
+          </p>
           <div className="progress-bar">
             <div 
               className="progress-fill"
@@ -101,8 +106,8 @@ const Rewards = ({ actualSavings }) => {
             />
           </div>
           <p>
-            {Math.max(POINTS_PER_REWARD - remainingPoints, 0)} more points needed for a ${REWARD_VALUE} gift card
-            ({POINTS_PER_REWARD > 0 ? (remainingPoints / POINTS_PER_REWARD * 100).toFixed(1) : '0.0'}% complete)
+            {Math.max(POINTS_PER_REWARD - remainingPoints, 0)} more point{Math.max(POINTS_PER_REWARD - remainingPoints, 0) === 1 ? '' : 's'} needed for a ${REWARD_VALUE} gift card
+            ({POINTS_PER_REWARD > 0 ? ((remainingPoints / POINTS_PER_REWARD) * 100).toFixed(1) : '0.0'}% to next reward; about ${dollarsToNextReward} more in savings)
           </p>
         </div>
       </div>

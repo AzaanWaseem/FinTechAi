@@ -30,6 +30,21 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
   // pad 10% and round up to nearest 100 for cleaner axis labels
   const maxValue = Math.ceil((dataMax * 1.1 || 0) / 100) * 100;
 
+  // Build Y-axis ticks and include the budget as a labeled threshold tick when available
+  const baseTickCount = 5; // aim for ~5 ticks
+  const step = maxValue > 0 ? Math.max(1, Math.round(maxValue / baseTickCount / 50) * 50) : 100;
+  let ticks = [];
+  if (maxValue > 0) {
+    for (let v = 0; v <= maxValue; v += step) {
+      ticks.push(v);
+    }
+  }
+  if (monthlyBudget > 0 && monthlyBudget <= Math.max(maxValue, step)) {
+    ticks.push(monthlyBudget);
+  }
+  // de-dupe and sort
+  ticks = Array.from(new Set(ticks)).sort((a, b) => a - b);
+
   return (
     <div className="spending-breakdown">
       <h3>Spending Breakdown</h3>
@@ -38,7 +53,13 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} background={{ fill: '#fff' }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
-            <YAxis domain={[0, maxValue]} />
+            <YAxis 
+              domain={[0, Math.max(maxValue, monthlyBudget || 0)]}
+              ticks={ticks}
+              tickFormatter={(v) => {
+                return `$${Number(v).toFixed(0)}`;
+              }}
+            />
             <Tooltip 
               formatter={(value) => [`$${value.toFixed(2)}`, 'Amount']}
               labelFormatter={(label) => `${label} Spending`}
@@ -49,7 +70,20 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Bar>
-            {/* Budget reference line removed to avoid cluttered label */}
+            {monthlyBudget > 0 && (
+              <ReferenceLine 
+                y={monthlyBudget} 
+                stroke="#dc2626" 
+                strokeWidth={3}
+                ifOverflow="extendDomain"
+                label={{
+                  value: `$${Number(monthlyBudget).toFixed(0)}`,
+                  position: 'right',
+                  fill: '#dc2626',
+                  fontWeight: 'bold'
+                }}
+              />
+            )}
           </BarChart>
         </ResponsiveContainer>
       </div>

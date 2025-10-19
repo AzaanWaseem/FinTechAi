@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 from nessie_client import NessieClient
 from gemini_client import GeminiClient
+from mediastack_client import MediastackClient
 from apscheduler.schedulers.background import BackgroundScheduler
 import json
 
@@ -18,7 +19,8 @@ user_session_state = {
     "customer_id": None,
     "account_id": None,
     "savings_goal": 0,
-    "monthly_budget": 0
+    "monthly_budget": 0,
+    "saved_stocks": []  # list of {symbol, name}
 }
 # Note: tracks transactions the user has chosen to remove/hide (account_id -> [ id | {description, amount} ])
 user_session_state.setdefault('removed_transactions', {})
@@ -26,6 +28,7 @@ user_session_state.setdefault('removed_transactions', {})
 # Initialize clients
 nessie_client = NessieClient()
 gemini_client = GeminiClient()
+mediastack_client = MediastackClient()
 
 def analyze_spending():
     """Main function to analyze user spending patterns"""
@@ -36,8 +39,19 @@ def analyze_spending():
         if not account_id:
             return {"error": "No account found. Please complete onboarding first."}
         
-        # Get transactions
-        transactions = nessie_client.get_transactions(account_id)
+        # Get transactions (prefer Nessie; fall back to synthesized mock if Nessie unavailable
+        transactions = []
+        try:
+            if nessie_client._test_api_connection():
+                transactions = nessie_client.get_transactions(account_id)
+            else:
+                # Use synthesized mock transactions when Nessie is down/unreachable
+                mock_base = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                transactions = mock_base
+        except Exception:
+            # Hard fallback to synthesized transactions if fetching failed
+            mock_base = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+            transactions = mock_base
         # Merge any in-memory mock transactions the user added via UI
         mock_tx = user_session_state.get('mock_transactions', {}).get(account_id, [])
         if mock_tx:
@@ -167,12 +181,37 @@ def onboard():
         if not getattr(nessie_client, 'api_key', None):
             return jsonify({"error": "Nessie API key is not configured. Copy backend/env_template.txt to .env and add NESSIE_API_KEY."}), 400
 
+        # Attempt to use Nessie; if unreachable, fall back to mock onboarding so users can continue
+        use_mock = False
         try:
             if not nessie_client._test_api_connection():
-                return jsonify({"error": "Cannot reach Nessie API. Please check network or your Nessie API key."}), 502
-        except Exception as e:
-            return jsonify({"error": f"Nessie connectivity test failed: {str(e)}"}), 502
+                use_mock = True
+        except Exception:
+            use_mock = True
 
+        if use_mock:
+            # Create a mock customer/account and seed in-memory transactions so the app works offline
+            try:
+                customer_id, account_id = nessie_client._create_mock_customer_and_account()
+            except Exception:
+                # very defensive: ensure ids exist
+                customer_id, account_id = ("mock_customer", "mock_account")
+            user_session_state["customer_id"] = customer_id
+            user_session_state["account_id"] = account_id
+            # seed synthesized transactions into the in-memory store for this account
+            try:
+                synth = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                user_session_state.setdefault('mock_transactions', {})
+                user_session_state['mock_transactions'][account_id] = synth
+            except Exception as e:
+                print(f"Error generating mock transactions: {e}")
+            return jsonify({
+                "customerId": customer_id,
+                "accountId": account_id,
+                "warning": "Using mock data because Nessie API is unreachable."
+            }), 200
+
+        # Real Nessie path
         customer_id, account_id = nessie_client.create_customer_and_account()
 
         if customer_id and account_id:
@@ -298,7 +337,13 @@ def seed_transactions():
         if not account_id:
             return jsonify({"error": "No account found. Please complete onboarding first."}), 400
         try:
-            nessie_client.seed_transactions(account_id)
+            # If Nessie is reachable, seed via API; otherwise, seed local in-memory list
+            if nessie_client._test_api_connection():
+                nessie_client.seed_transactions(account_id)
+            else:
+                synth = [nessie_client._normalize_tx(tx, source='mock') for tx in nessie_client._get_mock_transactions()]
+                user_session_state.setdefault('mock_transactions', {})
+                user_session_state['mock_transactions'][account_id] = synth
             return jsonify({"status": "success", "message": "Transactions seeded"})
         except Exception as e:
             print(f"Error seeding transactions: {e}")
@@ -306,6 +351,105 @@ def seed_transactions():
     except Exception as e:
         print(f"Error seeding transactions: {e}")
         return jsonify({"error": "Failed to seed transactions"}), 500
+
+
+@app.route('/api/stocks-trending', methods=['GET'])
+def stocks_trending():
+    """Get 3 trending buy and 3 sell stock ideas with descriptions via Gemini.
+    This is general information, not financial advice.
+    """
+    try:
+        data = gemini_client.get_trending_stocks()
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in stocks_trending: {e}")
+        return jsonify({
+            "buys": [],
+            "sells": [],
+            "disclaimer": "Unable to retrieve ideas right now. Try again later."
+        }), 500
+
+
+@app.route('/api/stocks/save', methods=['POST'])
+def save_stocks():
+    """Save selected stocks (from buys/sells) into session for the user."""
+    try:
+        data = request.get_json() or {}
+        items = data.get('stocks', [])
+        if not isinstance(items, list):
+            return jsonify({"error": "stocks must be a list"}), 400
+        # Deduplicate by symbol
+        existing = {s.get('symbol') for s in user_session_state.get('saved_stocks', [])}
+        for it in items:
+            sym = (it.get('symbol') or '').upper()
+            name = it.get('name') or sym
+            if sym and sym not in existing:
+                user_session_state['saved_stocks'].append({'symbol': sym, 'name': name})
+                existing.add(sym)
+        return jsonify({"status": "saved", "count": len(user_session_state['saved_stocks'])})
+    except Exception as e:
+        print(f"Error in save_stocks: {e}")
+        return jsonify({"error": "Failed to save stocks"}), 500
+
+
+@app.route('/api/stocks/saved', methods=['GET'])
+def get_saved_stocks():
+    """Return saved stocks along with a buy/hold/sell verdict from Gemini."""
+    try:
+        saved = user_session_state.get('saved_stocks', [])
+        ratings = gemini_client.rate_stocks(saved)
+        ratings_list = ratings.get('ratings', [])
+        saved_by_sym = {(s.get('symbol') or '').upper(): s for s in saved}
+        # Enrich reasons using Mediastack headlines where possible
+        enriched = []
+        try:
+            for r in ratings_list:
+                sym = (r.get('symbol') or '').upper()
+                name = (saved_by_sym.get(sym, {}).get('name')) or r.get('name') or sym
+                reason = r.get('reason') or ''
+                news_reason = mediastack_client.get_reason_for_stock(sym, name)
+                if news_reason:
+                    # Attach the news headline as an addendum for transparency
+                    if reason:
+                        reason = f"{reason} — {news_reason}"
+                    else:
+                        reason = news_reason
+                enriched.append({**r, 'reason': reason})
+        except Exception:
+            # If anything fails, fall back to original ratings
+            enriched = ratings_list
+
+        return jsonify({'saved': saved, 'ratings': enriched})
+    except Exception as e:
+        print(f"Error in get_saved_stocks: {e}")
+        return jsonify({'saved': [], 'ratings': []}), 500
+
+
+@app.route('/api/credit-cards', methods=['GET'])
+def recommend_credit_cards():
+    """Recommend top credit cards based on user's spending (uses Gemini with safe fallback)."""
+    try:
+        # Reuse current analysis to derive categories and recent transaction descriptions
+        analysis_result = analyze_spending()
+        if 'error' in analysis_result:
+            # proceed with minimal info if possible
+            tx_desc = []
+            cats = []
+        else:
+            txs = analysis_result.get('categorizedTransactions', [])
+            # favor wants/needs categories to infer rewards usefulness
+            tx_desc = [t.get('description', '') for t in txs[-40:]]  # last 40 for relevance
+            # approximate categories present
+            cats = list({(t.get('category') or '').lower() for t in txs if t.get('category')})
+
+        data = gemini_client.recommend_credit_cards(tx_desc, approx_categories=cats)
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in recommend_credit_cards: {e}")
+        return jsonify({
+            "cards": [],
+            "disclaimer": "Unable to retrieve recommendations right now. Try again later."
+        }), 500
 
 
 @app.route('/api/add-transaction', methods=['POST'])
@@ -433,13 +577,18 @@ def run_scheduled_analysis():
     except Exception as e:
         print(f"❌ Scheduled analysis error: {e}")
 
-# Configure scheduler
+# Configure scheduler (start only once; avoid double-start with Flask reloader)
 scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(run_scheduled_analysis, 'interval', days=7)
-scheduler.start()
 
 if __name__ == '__main__':
     print("🚀 Starting AI Financial Coach Backend...")
     print("📊 Scheduler configured for weekly analysis")
     print("🔑 Make sure to set NESSIE_API_KEY and GEMINI_API_KEY in .env file")
-    app.run(debug=True, port=5002)
+    try:
+        if not scheduler.running:
+            scheduler.start()
+    except Exception as e:
+        print(f"⚠️  Scheduler start skipped: {e}")
+    # Disable the debug reloader to avoid double imports that can re-start the scheduler
+    app.run(debug=True, port=5002, use_reloader=False)
