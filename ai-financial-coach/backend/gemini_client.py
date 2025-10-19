@@ -69,24 +69,72 @@ Here is the list of transactions to categorize:
             if not self.model:
                 print("⚠️  Gemini API key not configured, using fallback recommendation")
                 return self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
-            
-            prompt = f"""You are a friendly, encouraging, and insightful financial coach. Your goal is to provide a single, short, actionable recommendation to a user based on their weekly spending summary. Be positive and avoid shaming language.
 
-**User's Financial Context:**
-- Monthly Savings Goal: ${goal}
-- Total spent on 'Needs' this period: ${needs_total}
-- Total spent on 'Wants' this period: ${wants_total}
-- A detailed list of their 'Want' transactions is: {want_transactions_list}
+            # Structured prompt: ask for JSON with top wants and a short actionable suggestion
+            prompt = f"""
+You are an expert, friendly financial coach. Given the user's spending context, return a single JSON object (and nothing else) with these fields:
 
-**Your Task:**
-Based on the context, provide one specific and actionable piece of advice.
-- If 'Want' spending is high relative to their goal, identify the largest category of 'Want' spending (e.g., coffee, shopping, dining out) from the provided list and suggest a small, manageable change. For example, "I noticed a few coffee shop visits! Maybe try making coffee at home a couple of days next week to see how much you can save?"
-- If they are on track to meet their goal, congratulate them and offer encouragement. For example, "You're doing a great job keeping your 'Want' spending in check! Keep up the fantastic work towards your ${goal} goal."
-- Keep the recommendation to 2-3 sentences. Start with a friendly and positive tone."""
+{{
+  "top_want_transactions": [
+    {{"description": "<text>", "amount": <number>}},
+    ... up to 3 items ...
+  ],
+  "top_categories": ["coffee", "dining", "shopping"],
+  "suggestion": "A short (1-2 sentence) actionable suggestion for the user",
+  "reason": "One short sentence explaining why this will help"
+}}
+
+User context:
+- monthly_savings_goal: ${goal}
+- needs_total: ${needs_total}
+- wants_total: ${wants_total}
+- want_transactions (detailed): {want_transactions_list}
+
+Constraints:
+- Return ONLY the JSON object, nothing else (no prose, no backticks).
+- Keep suggestion to 1-2 sentences. Focus on small, actionable changes (e.g., "make coffee at home 3 days this week").
+"""
 
             response = self.model.generate_content(prompt)
-            return response.text.strip()
-            
+            response_text = response.text.strip()
+
+            # Strip markdown fences if present
+            if response_text.startswith('```'):
+                # remove leading fence
+                parts = response_text.split('```')
+                if len(parts) >= 2:
+                    response_text = parts[1].strip()
+
+            # Try to parse JSON
+            try:
+                data = json.loads(response_text)
+            except Exception:
+                # Fallback: ask for a plain-text recommendation
+                try:
+                    # Attempt to extract a plain-text suggestion
+                    return response_text.split('\n')[0][:500]
+                except:
+                    return self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
+
+            # Build a concise human-readable recommendation string from structured data
+            suggestion = data.get('suggestion') or ''
+            reason = data.get('reason') or ''
+            top = data.get('top_want_transactions', [])
+            cats = data.get('top_categories', [])
+
+            # Format top wants summary
+            top_summary = ''
+            if top:
+                items = [f"{t.get('description','').strip()} (${float(t.get('amount',0)):.2f})" for t in top]
+                top_summary = 'Top wants: ' + ', '.join(items) + '.'
+
+            cat_summary = ''
+            if cats:
+                cat_summary = 'Major categories: ' + ', '.join(cats) + '. '
+
+            final = ' '.join(p for p in [suggestion, reason, top_summary, cat_summary] if p).strip()
+            return final or self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
+
         except Exception as e:
             print(f"⚠️  Error getting recommendation: {e}")
             return self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)

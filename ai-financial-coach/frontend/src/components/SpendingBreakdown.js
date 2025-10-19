@@ -21,7 +21,15 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
     }
   ];
 
-  const maxValue = Math.max(totalSpending, monthlyBudget) * 1.1;
+  // Compute a safe max from the data and budget, then round up to a nice tick
+  const dataMax = Math.max(
+    totalSpending || 0,
+    monthlyBudget || 0,
+    needsTotal || 0,
+    wantsTotal || 0
+  );
+  // pad 10% and round up to nearest 100 for cleaner axis labels
+  const maxValue = Math.ceil((dataMax * 1.1 || 0) / 100) * 100;
 
   return (
     <div className="spending-breakdown">
@@ -42,14 +50,7 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Bar>
-            {monthlyBudget > 0 && (
-              <ReferenceLine 
-                y={monthlyBudget} 
-                stroke="#004879" 
-                strokeDasharray="5 5" 
-                label={{ value: `Budget: $${monthlyBudget.toFixed(2)}`, position: 'topRight', fill: '#004879' }}
-              />
-            )}
+            {/* Budget reference line removed to avoid cluttered label */}
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -67,12 +68,7 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
           <span className="label">Total:</span>
           <span className="amount">${totalSpending.toFixed(2)}</span>
         </div>
-        {monthlyBudget > 0 && (
-          <div className="summary-item budget">
-            <span className="label">Budget:</span>
-            <span className="amount">${monthlyBudget.toFixed(2)}</span>
-          </div>
-        )}
+  {/* Budget amount removed from summary to keep the card clean */}
       </div>
       
       {monthlyBudget > 0 && (

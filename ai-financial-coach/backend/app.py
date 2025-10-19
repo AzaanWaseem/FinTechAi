@@ -130,27 +130,28 @@ def analyze_spending():
         # Calculate totals
         needs_total = sum(tx['amount'] for tx in categorized_transactions if tx['category'] == 'Need')
         wants_total = sum(tx['amount'] for tx in categorized_transactions if tx['category'] == 'Want')
-        
+
         # Get AI recommendation
-        want_transactions = [tx['description'] for tx in categorized_transactions if tx['category'] == 'Want']
+        # Provide detailed want transactions (description + amount) so AI can make
+        # transaction-specific suggestions.
+        want_transactions = [f"{tx.get('description','')} (${tx.get('amount',0):.2f})" for tx in categorized_transactions if tx['category'] == 'Want']
         recommendation = gemini_client.get_recommendation(needs_total, wants_total, savings_goal, want_transactions)
-        
+
         if not recommendation:
             # Fallback recommendation
             if wants_total > savings_goal * 0.5:
                 recommendation = f"Consider reducing your 'Want' spending of ${wants_total:.2f} to better meet your ${savings_goal} savings goal!"
             else:
                 recommendation = f"Great job! You're on track with your ${savings_goal} savings goal. Keep it up!"
-        
+
         return {
             "needsTotal": needs_total,
             "wantsTotal": wants_total,
             "totalSpending": needs_total + wants_total,
             "monthlyBudget": user_session_state.get("monthly_budget", 0),
-            "savingsGoal": user_session_state.get("savings_goal", 0),
+            "savingsGoal": savings_goal,
             "recommendation": recommendation,
-            "categorizedTransactions": categorized_transactions,
-            "savingsGoal": savings_goal
+            "categorizedTransactions": categorized_transactions
         }
         
         
@@ -162,8 +163,18 @@ def analyze_spending():
 def onboard():
     """Create a new customer and account, seed with transactions"""
     try:
+        # Quick pre-checks for helpful errors: API key present and Nessie reachable
+        if not getattr(nessie_client, 'api_key', None):
+            return jsonify({"error": "Nessie API key is not configured. Copy backend/env_template.txt to .env and add NESSIE_API_KEY."}), 400
+
+        try:
+            if not nessie_client._test_api_connection():
+                return jsonify({"error": "Cannot reach Nessie API. Please check network or your Nessie API key."}), 502
+        except Exception as e:
+            return jsonify({"error": f"Nessie connectivity test failed: {str(e)}"}), 502
+
         customer_id, account_id = nessie_client.create_customer_and_account()
-        
+
         if customer_id and account_id:
             user_session_state["customer_id"] = customer_id
             user_session_state["account_id"] = account_id
@@ -171,7 +182,8 @@ def onboard():
                 nessie_client.seed_transactions(account_id)
             except Exception as e:
                 print(f"Error during seeding: {e}")
-                return jsonify({"error": "Failed to seed transactions on Nessie"}), 500
+                # still return customer/account so user can proceed, but warn
+                return jsonify({"customerId": customer_id, "accountId": account_id, "warning": "Account created but seeding transactions failed."}), 200
 
             return jsonify({
                 "customerId": customer_id,
@@ -179,10 +191,11 @@ def onboard():
             })
         else:
             return jsonify({"error": "Failed to create account"}), 500
-            
+
     except Exception as e:
         print(f"Error in onboard: {e}")
-        return jsonify({"error": "Failed to create your financial account. Please try again."}), 500
+        # return the exception message to help debugging in dev environments
+        return jsonify({"error": f"Failed to create your financial account: {str(e)}"}), 500
 
 @app.route('/api/set-goal', methods=['POST'])
 def set_goal():
@@ -255,6 +268,26 @@ def investment_idea():
 def health():
     """Health check endpoint"""
     return jsonify({"status": "healthy", "message": "AI Financial Coach API is running"})
+
+
+@app.route('/api/nessie-health', methods=['GET'])
+def nessie_health():
+    """Check Nessie API key and connectivity"""
+    try:
+        if not getattr(nessie_client, 'api_key', None):
+            return jsonify({"status": "error", "message": "NESSIE_API_KEY not set in backend .env"}), 400
+        ok = False
+        try:
+            ok = nessie_client._test_api_connection()
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Connectivity test failed: {str(e)}"}), 502
+
+        if ok:
+            return jsonify({"status": "ok", "message": "Nessie reachable"})
+        else:
+            return jsonify({"status": "error", "message": "Nessie API not reachable"}), 502
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Unexpected error: {str(e)}"}), 500
 
 
 @app.route('/api/seed-transactions', methods=['POST'])

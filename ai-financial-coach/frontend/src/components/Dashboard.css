@@ -1,3 +1,4 @@
+
 .dashboard-container {
   min-height: 100vh;
   padding: 24px;
@@ -41,16 +42,26 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* wide view: 4 equal columns to match the provided layout */
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  /* ensure rows have a reasonable minimum height so bottom cards visually match top cards */
+  grid-auto-rows: minmax(320px, 1fr);
+}
+
+/* make grid children column flex containers so internal content can stretch */
+.dashboard-grid > * {
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-card,
 .progress-card,
 .recommendation-card,
-.transactions-card {
+.transactions-card,
+.rewards-card {
   background: white;
   border-radius: 12px;
   padding: 28px;
@@ -62,14 +73,16 @@
 .chart-card:hover,
 .progress-card:hover,
 .recommendation-card:hover,
-.transactions-card:hover {
+.transactions-card:hover,
+.rewards-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .chart-card h3,
 .progress-card h3,
 .recommendation-card h3,
-.transactions-card h3 {
+.transactions-card h3,
+.rewards-card h3 {
   color: #111827;
   margin-bottom: 24px;
   font-size: 1.25rem;
@@ -210,8 +223,17 @@
 }
 
 .transactions-list {
-  max-height: 400px;
+  /* allow the transactions list to expand and scroll inside the card */
+  flex: 1 1 auto;
   overflow-y: auto;
+}
+
+/* let the rewards card content expand so the card matches others */
+.rewards-card .rewards-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
 }
 
 .transaction-item {
