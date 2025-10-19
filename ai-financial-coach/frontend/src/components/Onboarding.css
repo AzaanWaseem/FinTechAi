@@ -1,0 +1,91 @@
+:root{
+  --primary: #004897;
+  --accent: #d22e1e;
+}
+
+.onboarding-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f3f8ff 0%, #eef2ff 100%);
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 760px;
+  background: var(--card, #ffffff);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 12px 36px rgba(2,6,23,0.08);
+  border: 1px solid rgba(14, 20, 36, 0.04);
+}
+
+.onboarding-title {
+  font-size: 2rem;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.onboarding-desc {
+  color: #475569;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.nessie-banner {
+  margin-bottom: 1rem;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  color: #92400e;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.error-banner {
+  margin-bottom: 1rem;
+  background: #fff1f2;
+  border: 1px solid #fecaca;
+  color: #7f1d1d;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.primary-button {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.features {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+  border: 1px solid #eef2ff;
+}
+
+.features h3 {
+  margin: 0 0 0.75rem 0;
+  color: #0b1f3a;
+  font-weight: 700;
+}
+
+.features ul { list-style: none; padding: 0; margin: 0; }
+.features li { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; align-items: flex-start; color: #0f172a; }
+.features .check { color: var(--primary); font-weight: 700; font-size: 1.2rem; }

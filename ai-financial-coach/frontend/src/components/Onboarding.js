@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+// Converted to Tailwind utilities; removed Onboarding.css
 
 const Onboarding = ({ onComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -51,55 +52,35 @@ const Onboarding = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-12">
-      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
-        <h1 className="text-4xl font-bold text-[#004977] mb-3 text-center">
-          Welcome to AI Financial Coach
-        </h1>
-        <p className="text-gray-600 text-center mb-6">
-          We'll create a demo account and analyze your spending to provide personalized insights.
-        </p>
-        
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="max-w-xl w-full bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <h1 className="text-2xl font-semibold text-[#0b1f3a] mb-2">Welcome to AI Financial Coach</h1>
+        <p className="text-gray-600 mb-4">We'll create a demo account and analyze your spending to provide personalized insights.</p>
+
         {/* Nessie health banner */}
         {nessieStatus && !nessieStatus.ok && (
-          <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
-            {nessieStatus.message}
-          </div>
+          <div className="mb-4 p-3 rounded bg-red-50 text-red-700 border border-red-100">{nessieStatus.message}</div>
         )}
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-            {error}
-          </div>
+          <div className="mb-4 p-3 rounded bg-red-50 text-red-700 border border-red-100">{error}</div>
         )}
-        
+
         <button 
-          className="w-full bg-[#004977] text-white py-4 rounded-lg font-semibold text-lg hover:bg-[#003a5d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-8"
+          className="w-full bg-[#004897] hover:bg-[#00356a] text-white font-medium py-3 rounded-lg mb-6 disabled:opacity-60"
           onClick={handleStartJourney}
           disabled={isLoading}
         >
           {isLoading ? 'Creating Account...' : 'Start Your Journey'}
         </button>
-        
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">What you'll get:</h3>
-          <ul className="space-y-3">
-            <li className="flex items-start">
-              <span className="text-green-500 mr-3 text-xl">✓</span>
-              <span className="text-gray-700">AI-powered spending analysis</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-500 mr-3 text-xl">✓</span>
-              <span className="text-gray-700">Personalized savings recommendations</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-500 mr-3 text-xl">✓</span>
-              <span className="text-gray-700">Interactive financial dashboard</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-green-500 mr-3 text-xl">✓</span>
-              <span className="text-gray-700">Investment education when you reach your goals</span>
-            </li>
+
+        <div className="features text-sm text-gray-700">
+          <h3 className="font-medium mb-2">What you'll get:</h3>
+          <ul className="space-y-2">
+            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> AI-powered spending analysis</li>
+            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Personalized savings recommendations</li>
+            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Interactive financial dashboard</li>
+            <li className="flex items-start"><span className="text-[#16a34a] mr-2">✓</span> Investment education when you reach your goals</li>
           </ul>
         </div>
       </div>
