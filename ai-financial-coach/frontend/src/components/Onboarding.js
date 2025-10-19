@@ -54,8 +54,8 @@ const Onboarding = ({ onComplete }) => {
   return (
   <div className="center-screen">
     <div className="welcome-box">
-        <h1 className="text-3xl font-bold text-center text-[#0b1f3a] mb-3">Capital One's AI Financial Advisor</h1>
-        <p className="text-gray-600 text-center mb-6">We'll create a demo account and analyze your spending to provide personalized insights.</p>
+        <h1 className="text-3xl font-bold text-center text-white mb-3">Capital One's AI Financial Advisor</h1>
+        <p className="text-white text-center mb-6">We'll create a demo account and analyze your spending to provide personalized insights.</p>
 
         {/* Nessie health banner */}
         {nessieStatus && !nessieStatus.ok && (
@@ -67,7 +67,7 @@ const Onboarding = ({ onComplete }) => {
         )}
 
         <div className="features text-sm">
-          <h3 className="font-medium mb-2 text-center">What you'll get:</h3>
+          <h3 className="font-bold mb-2 text-center text-white">What you'll get:</h3>
           <div className="features-text text-center text-base leading-7">
             <p><span className="feature-check">✓</span> AI-powered spending analysis</p>
             <p><span className="feature-check">✓</span> Personalized savings recommendations</p>

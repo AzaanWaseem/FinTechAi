@@ -48,93 +48,83 @@ const GoalSetter = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 flex items-center justify-center px-4 py-12">
-      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
-        <h1 className="text-4xl font-bold text-[#004977] mb-3 text-center">
+    <div className="center-screen">
+      <div className="welcome-box">
+        <h1 className="text-3xl font-bold text-center text-white mb-3">
           Set Your Financial Goals
         </h1>
-        <p className="text-gray-600 text-center mb-8">
+        <p className="text-white text-center mb-6">
           Set your monthly budget and savings goal to get personalized financial insights.
         </p>
         
         <form onSubmit={handleSetGoal} className="space-y-6">
           <div>
-            <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="budget" className="block text-sm font-medium text-white mb-2 text-left">
               Monthly Budget:
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-semibold">$</span>
               <input
                 type="number"
                 id="budget"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                placeholder="3000"
+                placeholder=""
                 min="1"
                 step="0.01"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent text-lg"
+                className="w-full pr-5 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent bg-white shadow-md"
+                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '40px', fontSize: '1.5rem' }}
               />
             </div>
           </div>
           
-          <div>
-            <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-12">
+            <label htmlFor="goal" className="block text-sm font-medium text-white mb-2 text-left">
               Monthly Savings Goal:
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-xl font-semibold">$</span>
               <input
                 type="number"
                 id="goal"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                placeholder="500"
+                placeholder=""
                 min="1"
                 step="0.01"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent text-lg"
+                className="w-full pr-5 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-transparent bg-white shadow-md"
+                style={{ backgroundColor: '#ffffff', borderRadius: '16px', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '40px', fontSize: '1.5rem' }}
               />
             </div>
           </div>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+            <div className="mb-4 p-3 rounded bg-red-50 text-red-700 border border-red-100">
               {error}
             </div>
           )}
           
-          <button 
-            type="submit"
-            className="w-full bg-[#004977] text-white py-4 rounded-lg font-semibold text-lg hover:bg-[#003a5d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Setting Goal...' : 'Set My Goal'}
-          </button>
+          <div style={{ marginTop: '32px' }}>
+            <button 
+              type="submit"
+              className="btn btn-primary w-full"
+              disabled={isLoading}
+              aria-disabled={isLoading}
+            >
+              {isLoading ? 'Setting Goal...' : 'Set My Goal'}
+            </button>
+          </div>
         </form>
         
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">💡 Tips for setting your goals</h3>
-          <ul className="space-y-2 text-gray-700">
-            <li className="flex items-start">
-              <span className="text-blue-500 mr-2">•</span>
-              <span>Budget should include all your monthly expenses</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-500 mr-2">•</span>
-              <span>Savings goal should be 10-20% of your budget</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-500 mr-2">•</span>
-              <span>Consider your essential expenses first</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-500 mr-2">•</span>
-              <span>You can always adjust these later</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-500 mr-2">•</span>
-              <span>Even small amounts add up over time!</span>
-            </li>
-          </ul>
+        <div className="features text-sm mt-8">
+          <h3 className="font-bold mb-2 text-center text-white">Tips for setting your goals</h3>
+          <div className="features-text text-center text-base leading-7">
+            <p><span className="feature-check">✓</span> Budget should include all your monthly expenses</p>
+            <p><span className="feature-check">✓</span> Savings goal should be 10-20% of your budget</p>
+            <p><span className="feature-check">✓</span> Consider your essential expenses first</p>
+            <p><span className="feature-check">✓</span> You can always adjust these later</p>
+            <p><span className="feature-check">✓</span> Even small amounts add up over time!</p>
+          </div>
         </div>
       </div>
     </div>

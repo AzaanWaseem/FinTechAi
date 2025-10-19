@@ -120,6 +120,12 @@ a {
 
 .welcome-box h1 {
   color: #07203a;
+  font-weight: bold;
+}
+
+.welcome-box h3 {
+  color: #07203a;
+  font-weight: bold;
 }
 
 /* Brand logo top-left */
