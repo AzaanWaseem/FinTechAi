@@ -53,6 +53,9 @@ const Onboarding = ({ onComplete }) => {
 
   return (
   <div className="center-screen">
+    {/* Decorative mark placed behind the welcome card. Put the image at frontend/public/capitalone-mark.png */}
+    <div className="decorative-mark" style={{ backgroundImage: "url('/capitalone-mark.png')" }} />
+
     <div className="welcome-box">
         <h1 className="text-3xl font-bold text-center text-[#0b1f3a] mb-3">Capital One's AI Financial Advisor</h1>
         <p className="text-gray-600 text-center mb-6">We'll create a demo account and analyze your spending to provide personalized insights.</p>

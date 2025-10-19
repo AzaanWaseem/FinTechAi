@@ -109,6 +109,24 @@ a {
   box-shadow: 0 38px 84px rgba(148, 19, 12, 0.55), inset 0 1px 0 rgba(255,255,255,0.58);
 }
 
+/* Decorative mark behind welcome box */
+.decorative-mark {
+  position: absolute;
+  width: 720px;
+  height: 360px;
+  top: calc(50% - 320px); /* position above the card */
+  left: 50%;
+  transform: translateX(-50%);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center top;
+  opacity: 0.18;
+  z-index: 5; /* behind the welcome-box (which will be raised) */
+  pointer-events: none;
+}
+
+.welcome-box { position: relative; z-index: 10; }
+
 /* Text adjustments for red box */
 .welcome-box h1, .welcome-box p, .welcome-box .features { color: #3b0f0a; }
 .welcome-box .features { background: rgba(255,255,255,0.04); padding: 14px; border-radius: 12px; margin-top: 12px; }
@@ -132,6 +150,93 @@ a {
   box-sizing: border-box;
 }
 
+/* Page-level white background for specific views (e.g., Dashboard) */
+.page-white {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #0b1f3a; /* darker text on white */
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Carousel styles for dashboard slideshow */
+.carousel-root { width: 100%; max-width: 1200px; margin: 0 auto; }
+.carousel-window { overflow: hidden; width: 100%; border-radius: 12px; }
+.carousel-track { display: flex; transition: transform 520ms cubic-bezier(.2,.9,.2,1); }
+.carousel-slide { flex: 0 0 100%; display: flex; justify-content: center; padding: 18px 0; }
+.carousel-card { width: 100%; max-width: 560px; /* keep boxes similar size to original grid */ padding: 0; }
+
+/* Ensure inner card retains previous styling when contents use .card or inline styles */
+.carousel-card .card, .carousel-card > div { height: 100%; }
+
+.carousel-controls { display:flex; justify-content:center; margin-top:12px; }
+.dots { display:flex; gap:8px; }
+.dot { width:10px; height:10px; border-radius:50%; background: #e6eefc; border: none; cursor:pointer; padding:0; }
+.dot.active { background: var(--primary); box-shadow: 0 4px 12px rgba(2,6,23,0.12); transform: scale(1.06); }
+
+/* Make carousel-card responsive so on wide screens it keeps similar visual weight as original multi-column layout */
+@media (min-width: 900px) {
+  .carousel-card { max-width: 520px; }
+}
+
+/* Navy border for dashboard boxes */
+.dashboard-container .card,
+.dashboard-container .carousel-card > div,
+.dashboard-container .carousel-card .card,
+.dashboard-container [class*="card"],
+.dashboard-container > .container > div {
+  border: 2px solid #002f6c !important; /* navy */
+}
+
+/* Remove borders & shadows for dashboard boxes globally (user requested) */
+.dashboard-container .card,
+.dashboard-container .card *,
+.dashboard-container .carousel-card .card,
+.dashboard-container .carousel-card > div,
+.dashboard-container [class*="card"] {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Make the whole dashboard page use Capital One navy background */
+.dashboard-container.page-white {
+  background: linear-gradient(180deg, #072146 0%, #002f6c 100%);
+  color: #ffffff;
+}
+
+/* Ensure headings/cards inside dashboard remain readable */
+.dashboard-container.page-white h2,
+.dashboard-container.page-white h3,
+.dashboard-container.page-white p,
+.dashboard-container.page-white .muted {
+  color: #ffffff;
+}
+
+/* Make sure regular dashboard boxes themselves stay white with dark text */
+.dashboard-container .card,
+.dashboard-container .carousel-card .card,
+.dashboard-container .carousel-card > div,
+.dashboard-container [class*="card"] {
+  background: #ffffff !important;
+  color: #0b1f3a !important;
+}
+
+/* Previously the 3rd slide had special navy overrides; removed to keep consistent styling */
+
+/* Force the 3rd carousel slide to be visually white (no navy anywhere within it) */
+.carousel-slide:nth-child(3) {
+  background: #ffffff !important;
+  color: #0b1f3a !important;
+}
+.carousel-slide:nth-child(3) .card,
+.carousel-slide:nth-child(3) .carousel-card > div,
+.carousel-slide:nth-child(3) .carousel-card,
+.carousel-slide:nth-child(3) [class*="card"] {
+  background: #ffffff !important;
+  color: #0b1f3a !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+

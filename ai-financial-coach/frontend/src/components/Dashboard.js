@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CarouselView from './CarouselView';
 import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import SpendingBreakdown from './SpendingBreakdown';
@@ -117,7 +118,7 @@ const Dashboard = ({ onBack }) => {
   const actualSavingsFull = Math.max(0, savingsGoal - fullWantsTotal);
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container page-white">
       <div className="container" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
         {error && (
           <div className="error-banner">
@@ -171,58 +172,41 @@ const Dashboard = ({ onBack }) => {
           </div>
         )}
 
-        <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, maxWidth: 1400, margin: '0 auto', gridAutoRows: 'minmax(320px, 1fr)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 28, flex: '1 1 auto', borderRadius: 12, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb' }}>
-              <SpendingBreakdown needsTotal={displayedNeedsTotal} wantsTotal={displayedWantsTotal} totalSpending={displayedTotalSpending} monthlyBudget={monthlyBudget} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 28, flex: '1 1 auto', borderRadius: 12, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb' }}>
-              <SavingsHistory savingsGoal={savingsGoal} actualSavings={actualSavingsFull} />
-            </div>
-          </div>
-
-          <div style={{ padding: 28, borderRadius: 12, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'linear-gradient(135deg,#004977 0%,#003a5d 100%)', color: 'white' }}>
+        {/* Carousel: show one slide at a time; keep box sizes by constraining inner card width */}
+        <CarouselView
+          spendingBreakdown={<SpendingBreakdown needsTotal={displayedNeedsTotal} wantsTotal={displayedWantsTotal} totalSpending={displayedTotalSpending} monthlyBudget={monthlyBudget} />}
+          savingsHistory={<SavingsHistory savingsGoal={savingsGoal} actualSavings={actualSavingsFull} />}
+          recommendation={<div style={{ padding: 28, borderRadius: 12, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'linear-gradient(135deg,#004977 0%,#003a5d 100%)', color: 'white', height: '100%' }}>
             <h3 style={{ color: 'white' }}>AI Recommendation</h3>
             <div style={{ background: 'rgba(255,255,255,0.08)', padding: 20, borderRadius: 8, borderLeft: '3px solid rgba(96,165,250,0.6)', marginTop: 8, flex: '1 1 auto' }}>
               <p style={{ margin: 0, lineHeight: 1.6 }}>{recommendation}</p>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 28, borderRadius: 12, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', flex: '1 1 auto' }}>
-              <h3>Recent Transactions</h3>
-              <div className="transactions-list" style={{ flex: '1 1 auto', overflowY: 'auto', marginTop: 12 }}>
-                {categorizedTransactions.slice(-10).reverse().map((transaction, index) => {
-                  const isSelected = selectedTxIds.includes(transaction.id);
-                  return (
-                    <div key={transaction.id || index} className={`transaction-item ${transaction.category.toLowerCase()} ${isSelected ? 'selected-for-remove' : ''}`} onClick={() => {
-                      if (!removeMode) return;
-                      if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; }
-                      setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]);
-                    }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={(e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]); } }}>
-                      <div className="transaction-info">
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span className="transaction-description">{transaction.description}</span>
-                        </div>
-                        <span className="transaction-category">{transaction.category}</span>
+          </div>}
+          transactionsList={<div style={{ padding: 28, borderRadius: 12, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', flex: '1 1 auto' }}>
+            <h3>Recent Transactions</h3>
+            <div className="transactions-list" style={{ flex: '1 1 auto', overflowY: 'auto', marginTop: 12 }}>
+              {categorizedTransactions.slice(-10).reverse().map((transaction, index) => {
+                const isSelected = selectedTxIds.includes(transaction.id);
+                return (
+                  <div key={transaction.id || index} className={`transaction-item ${transaction.category.toLowerCase()} ${isSelected ? 'selected-for-remove' : ''}`} onClick={() => {
+                    if (!removeMode) return;
+                    if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; }
+                    setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]);
+                  }} role={removeMode ? 'button' : undefined} tabIndex={removeMode ? 0 : undefined} onKeyDown={(e) => { if (removeMode && (e.key === 'Enter' || e.key === ' ')) { if (!transaction.id) { setError('This transaction cannot be removed (missing id).'); return; } setSelectedTxIds(prev => prev.includes(transaction.id) ? prev.filter(i => i !== transaction.id) : [...prev, transaction.id]); } }}>
+                    <div className="transaction-info">
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span className="transaction-description">{transaction.description}</span>
                       </div>
-                      <span className="transaction-amount">${transaction.amount.toFixed(2)}</span>
+                      <span className="transaction-category">{transaction.category}</span>
                     </div>
-                  );
-                })}
-              </div>
+                    <span className="transaction-amount">${transaction.amount.toFixed(2)}</span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 28, borderRadius: 12, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', flex: '1 1 auto' }}>
-              <Rewards actualSavings={actualSavingsFull} />
-            </div>
-          </div>
-        </div>
+          </div>}
+          rewards={<Rewards actualSavings={actualSavingsFull} />}
+        />
       </div>
     </div>
   );
