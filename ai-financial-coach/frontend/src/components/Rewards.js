@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import './Rewards.css';
 
-// Correlate points directly to dollars saved: 1 point per $1 saved
-const POINTS_PER_DOLLAR = 1;
-// Reasonable threshold: every 100 points ($100 saved) earns a $50 reward
-const POINTS_PER_REWARD = 100;
+// Correlate points directly to dollars saved: 0.01 point per $1 saved
+const POINTS_PER_DOLLAR = 0.01; // 1 point per $100 saved
+// Threshold: 10 points (effectively $1000 saved) earns a $50 reward
+const POINTS_PER_REWARD = 10;
 const REWARD_VALUE = 50;
 
 const popularRetailers = [
@@ -25,9 +25,11 @@ const Rewards = ({ actualSavings }) => {
 
   // Defensive: coerce actualSavings to a finite number (fallback to 0).
   const safeSavings = Number(actualSavings) || 0;
-  const totalPoints = Number.isFinite(safeSavings) ? Math.max(0, Math.floor(safeSavings * POINTS_PER_DOLLAR)) : 0;
+  const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  // Track points to 2 decimal places
+  const totalPoints = Number.isFinite(safeSavings) ? Math.max(0, round2(safeSavings * POINTS_PER_DOLLAR)) : 0;
   const availableRewards = Math.floor(totalPoints / POINTS_PER_REWARD);
-  const remainingPoints = POINTS_PER_REWARD > 0 ? totalPoints % POINTS_PER_REWARD : 0;
+  const remainingPoints = POINTS_PER_REWARD > 0 ? round2(totalPoints - (availableRewards * POINTS_PER_REWARD)) : 0;
 
   const canRedeem = availableRewards > 0;
 
@@ -46,7 +48,7 @@ const Rewards = ({ actualSavings }) => {
   };
 
   // How many dollars needed to reach next reward (use safe math)
-  const pointsNeededForNext = Math.max(POINTS_PER_REWARD - remainingPoints, 0);
+  const pointsNeededForNext = round2(Math.max(POINTS_PER_REWARD - remainingPoints, 0));
   const dollarsToNextReward = POINTS_PER_DOLLAR > 0 ? Math.ceil(pointsNeededForNext / POINTS_PER_DOLLAR) : 0;
 
   return (
@@ -55,12 +57,12 @@ const Rewards = ({ actualSavings }) => {
       <div className="rewards-summary">
         <div className="points-info">
           <div className="points-total">
-            <span className="points-number">{Number.isFinite(totalPoints) ? totalPoints : 0}</span>
+            <span className="points-number">{Number.isFinite(totalPoints) ? totalPoints.toFixed(2) : '0.00'}</span>
             <span className="points-label">Total Points</span>
           </div>
           <div className="points-rate">
             <p>{POINTS_PER_DOLLAR} point{POINTS_PER_DOLLAR === 1 ? '' : 's'} per $1 saved</p>
-            <p>{availableRewards > 0 ? `${availableRewards} rewards available!` : `${Math.max(POINTS_PER_REWARD - remainingPoints, 0)} more points needed for your next reward!`}</p>
+            <p>{availableRewards > 0 ? `${availableRewards} rewards available!` : `${pointsNeededForNext.toFixed(2)} more points needed for your next reward!`}</p>
           </div>
         </div>
 
@@ -143,7 +145,7 @@ const Rewards = ({ actualSavings }) => {
 
         <div className="progress-to-next">
           <p style={{ marginTop: 0, marginBottom: 8 }}>
-            1 point per $1 saved. You currently have <strong>{Number.isFinite(totalPoints) ? totalPoints : 0}</strong> point{(Number.isFinite(totalPoints) ? totalPoints : 0) === 1 ? '' : 's'}.
+            0.01 point per $1 saved. You currently have <strong>{Number.isFinite(totalPoints) ? totalPoints.toFixed(2) : '0.00'}</strong> point{(Number.isFinite(totalPoints) ? totalPoints : 0) === 1 ? '' : 's'}.
           </p>
           <div className="progress-bar">
             <div 
@@ -152,7 +154,7 @@ const Rewards = ({ actualSavings }) => {
             />
           </div>
           <p>
-            {Math.max(POINTS_PER_REWARD - remainingPoints, 0)} more point{Math.max(POINTS_PER_REWARD - remainingPoints, 0) === 1 ? '' : 's'} needed for a ${REWARD_VALUE} gift card
+            {pointsNeededForNext.toFixed(2)} more point{pointsNeededForNext === 1 ? '' : 's'} needed for a ${REWARD_VALUE} gift card
             ({POINTS_PER_REWARD > 0 ? ((remainingPoints / POINTS_PER_REWARD) * 100).toFixed(1) : '0.0'}% to next reward; about ${dollarsToNextReward} more in savings)
           </p>
         </div>

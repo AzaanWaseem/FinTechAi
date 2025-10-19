@@ -145,6 +145,8 @@ a {
   color: #0b1f3a;
 }
 
+/* Removed global logo styles */
+
 /* Transaction category styling */
 .transaction-item.need {
   background-color: #e1f5fe !important; /* Light blue background for needs */

@@ -194,14 +194,22 @@ Return your response as a JSON object with "title" and "explanation" fields."""
             "explanation": f"Congratulations on successfully reaching your ${goal} savings goal! This is a fantastic achievement that shows great financial discipline. As you continue building your savings, you might want to learn about index funds - these are investment vehicles that hold many different stocks, providing diversification and typically lower risk compared to individual stock picking. This is general educational information, and you should always do your own research or consult with a qualified financial advisor before making investment decisions. Celebrate this milestone - you've earned it! 🎊"
         }
 
-    def get_trending_stocks(self):
+    def get_trending_stocks(self, avoid_symbols=None, seed=None, temperature=0.9):
         """Ask Gemini for 3 trending 'buy now' and 3 'sell now' stocks with short descriptions.
         Returns a dict: {"buys": [{symbol, name, reason}], "sells": [...], "disclaimer": str}
+
+        Parameters:
+        - avoid_symbols: list[str] of symbols to avoid repeating if possible (used for refreshes)
+        - seed: optional value injected into the prompt to encourage variety
+        - temperature: float, higher values increase output diversity
         """
         try:
             # If model not available, provide a static fallback
             if not self.model:
-                return self._fallback_trending_stocks()
+                return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
+
+            avoid_list = ', '.join(sorted(set((avoid_symbols or []))))
+            seed_text = f"Seed: {seed}" if seed is not None else "Seed: none"
 
             prompt = (
                 "You are a market news summarizer. Identify the three most currently trending US-listed stocks to 'Buy Now' "
@@ -216,10 +224,18 @@ Return your response as a JSON object with "title" and "explanation" fields."""
                 "- Use only US-listed common stocks (avoid funds/ETFs).\n"
                 "- Keep each 'reason' to 1-2 sentences.\n"
                 "- Do not include price targets or guarantee outcomes.\n"
-                "- Today's date is dynamically understood by you."
+                "- Today's date is dynamically understood by you.\n"
+                "- If possible, avoid repeating any of these symbols in your picks: [" + avoid_list + "]\n"
+                "- If avoidance is not possible due to market context, you may include some overlap.\n\n"
+                f"{seed_text}"
             )
 
-            response = self.model.generate_content(prompt)
+            # Prefer a slightly higher temperature to encourage variety
+            try:
+                response = self.model.generate_content(prompt, generation_config={"temperature": float(temperature)})
+            except Exception:
+                # Fallback: call without config if SDK doesn't accept generation_config dict
+                response = self.model.generate_content(prompt)
             text = response.text.strip()
             if text.startswith('```'):
                 parts = text.split('```')
@@ -229,26 +245,47 @@ Return your response as a JSON object with "title" and "explanation" fields."""
                 data = json.loads(text)
                 # basic validation
                 if not isinstance(data.get('buys', []), list) or not isinstance(data.get('sells', []), list):
-                    return self._fallback_trending_stocks()
+                    return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
                 return data
             except Exception:
-                return self._fallback_trending_stocks()
+                return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
         except Exception as e:
             print(f"⚠️  Error getting trending stocks: {e}")
-            return self._fallback_trending_stocks()
+            return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
 
-    def _fallback_trending_stocks(self):
+    def _fallback_trending_stocks(self, avoid_symbols=None):
+        import random
+        avoid = set((avoid_symbols or []))
+        # A small pool to create variety in fallback
+        pool_buys = [
+            {"symbol": "AAPL", "name": "Apple Inc.", "reason": "Strong ecosystem lock-in and recent product refresh sustain demand; services revenue continues to grow."},
+            {"symbol": "MSFT", "name": "Microsoft Corporation", "reason": "Cloud momentum and AI integration underpin steady revenue growth and operating leverage."},
+            {"symbol": "NVDA", "name": "NVIDIA Corporation", "reason": "Leadership in AI accelerators and data center demand maintains elevated growth outlook."},
+            {"symbol": "GOOGL", "name": "Alphabet Inc.", "reason": "Search and cloud resilience with ongoing AI monetization opportunities."},
+            {"symbol": "AMZN", "name": "Amazon.com, Inc.", "reason": "Retail optimization and AWS growth support long-term margin expansion."}
+        ]
+        pool_sells = [
+            {"symbol": "XYZ", "name": "XYZ Corp.", "reason": "Recent earnings miss and weak forward guidance suggest near-term pressure."},
+            {"symbol": "ABC", "name": "ABC Inc.", "reason": "Deteriorating margins and rising competition could weigh on performance."},
+            {"symbol": "DEF", "name": "DEF Co.", "reason": "Regulatory headwinds and execution risks increase uncertainty in the next quarter."},
+            {"symbol": "GME", "name": "GameStop Corp.", "reason": "Volatility and uncertain fundamentals keep risks elevated."},
+            {"symbol": "BBBYQ", "name": "Bed Bath & Beyond Inc.", "reason": "Bankruptcy-related risks overshadow near-term prospects."}
+        ]
+
+        def pick_three(pool):
+            cand = [x for x in pool if x.get('symbol') not in avoid]
+            random.shuffle(cand)
+            out = cand[:3]
+            if len(out) < 3:
+                # fill any missing from original pool (may include avoided)
+                extra = [x for x in pool if x not in out]
+                random.shuffle(extra)
+                out += extra[: 3 - len(out)]
+            return out
+
         return {
-            "buys": [
-                {"symbol": "AAPL", "name": "Apple Inc.", "reason": "Strong ecosystem lock-in and recent product refresh sustain demand; services revenue continues to grow."},
-                {"symbol": "MSFT", "name": "Microsoft Corporation", "reason": "Cloud momentum and AI integration underpin steady revenue growth and operating leverage."},
-                {"symbol": "NVDA", "name": "NVIDIA Corporation", "reason": "Leadership in AI accelerators and data center demand maintains elevated growth outlook."}
-            ],
-            "sells": [
-                {"symbol": "XYZ", "name": "XYZ Corp.", "reason": "Recent earnings miss and weak forward guidance suggest near-term pressure."},
-                {"symbol": "ABC", "name": "ABC Inc.", "reason": "Deteriorating margins and rising competition could weigh on performance."},
-                {"symbol": "DEF", "name": "DEF Co.", "reason": "Regulatory headwinds and execution risks increase uncertainty in the next quarter."}
-            ],
+            "buys": pick_three(pool_buys),
+            "sells": pick_three(pool_sells),
             "disclaimer": "This content is for general informational purposes only and is not financial advice. Always do your own research."
         }
 

@@ -161,14 +161,27 @@ const Dashboard = ({ onBack }) => {
 
   // Generate personalized AI recommendation based on budget status
   const generatePersonalizedRecommendation = () => {
-    // Use displayed totals to match the Spending Breakdown box
-    const totalSpent = displayedTotalSpending;
+    // IMPORTANT: Use current-month totals to match the header chips and spending breakdown
+    const today = new Date();
+    const currentMonthTx = displayedTransactions.filter(tx => {
+      const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+      return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    });
+
+    const needsTotal = currentMonthTx
+      .filter(t => t.category === 'Need')
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+    const wantsTotal = currentMonthTx
+      .filter(t => t.category === 'Want')
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+    const totalSpent = needsTotal + wantsTotal;
+
     const isOverBudget = monthlyBudget > 0 && totalSpent > monthlyBudget;
     const budgetRemaining = monthlyBudget - totalSpent;
     
     if (isOverBudget) {
-      // Find recent "Want" transactions for overspending recommendations
-      const recentWants = displayedTransactions
+      // Find recent "Want" transactions for overspending recommendations (current month only)
+      const recentWants = currentMonthTx
         .filter(t => t.category === 'Want')
         .sort((a, b) => b.amount - a.amount) // Sort by amount descending
         .slice(0, 2); // Take top 2 expensive wants
@@ -251,8 +264,20 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
     }
   };
 
+  // Compute AI recommendation on each render so it's always up to date
   const personalizedRecommendation = generatePersonalizedRecommendation();
   const remainingBudget = monthlyBudget - displayedTotalSpending;
+
+  // Compute current-month savings to align Rewards points with the visible savings progress
+  const today = new Date();
+  const currentMonthTx = (categorizedTransactions || []).filter(tx => {
+    const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+    return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+  });
+  const cmNeeds = currentMonthTx.filter(t => t.category === 'Need').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const cmWants = currentMonthTx.filter(t => t.category === 'Want').reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const cmTotal = cmNeeds + cmWants;
+  const currentMonthSavings = Math.max(0, (Number(monthlyBudget) || 0) - cmTotal);
 
   return (
     <div className="dashboard-container">
@@ -501,7 +526,7 @@ Pro tip: go on a weekday for shorter lines and better deals, or use student/loca
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-base">
               <div className="card-scroll">
-                <Rewards actualSavings={actualSavingsDisplayed} />
+                <Rewards actualSavings={currentMonthSavings} />
               </div>
             </div>
           </div>

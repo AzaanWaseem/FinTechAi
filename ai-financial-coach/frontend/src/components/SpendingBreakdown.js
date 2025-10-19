@@ -76,12 +76,6 @@ const SpendingBreakdown = ({ needsTotal, wantsTotal, totalSpending, monthlyBudge
                 stroke="#dc2626" 
                 strokeWidth={3}
                 ifOverflow="extendDomain"
-                label={{
-                  value: `$${Number(monthlyBudget).toFixed(0)}`,
-                  position: 'right',
-                  fill: '#dc2626',
-                  fontWeight: 'bold'
-                }}
               />
             )}
           </BarChart>

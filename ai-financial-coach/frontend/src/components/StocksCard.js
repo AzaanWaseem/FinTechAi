@@ -8,21 +8,32 @@ const StocksCard = () => {
   const [actionError, setActionError] = useState('');
   const [selected, setSelected] = useState({}); // key: symbol, value: {symbol,name}
 
+  const fetchTrending = async () => {
+    try {
+      setLoading(true);
+      setLoadError('');
+      // Pass current symbols to avoid, plus a seed and slightly higher temperature for variety
+      const avoid = [
+        ...(data?.buys || []).map((b) => (b.symbol || '').toUpperCase()),
+        ...(data?.sells || []).map((s) => (s.symbol || '').toUpperCase()),
+      ].filter(Boolean);
+      const params = new URLSearchParams();
+      if (avoid.length) params.set('avoid', avoid.join(','));
+      params.set('seed', String(Date.now()));
+      params.set('temperature', '0.95');
+      const res = await axios.get(`/api/stocks-trending?${params.toString()}`);
+      setData(res.data || { buys: [], sells: [], disclaimer: '' });
+    } catch (e) {
+      setLoadError('Unable to load trending stocks right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get('/api/stocks-trending');
-        if (!mounted) return;
-        setData(res.data || { buys: [], sells: [], disclaimer: '' });
-        setLoadError('');
-      } catch (e) {
-        if (!mounted) return;
-        setLoadError('Unable to load trending stocks right now.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      await fetchTrending();
     })();
     return () => { mounted = false; };
   }, []);
@@ -53,7 +64,9 @@ const StocksCard = () => {
     <div className="card-base" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h3 style={{ margin: 0 }}>Stocks to Buy/Sell</h3>
-        <button className="btn-primary small" onClick={saveSelected}>Save</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-primary small" onClick={saveSelected}>Save</button>
+        </div>
       </div>
       <div className="card-scroll" style={{ marginTop: 8 }}>
         {loading && <div>Fetching market highlights…</div>}

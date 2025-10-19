@@ -356,10 +356,137 @@ def seed_transactions():
 @app.route('/api/stocks-trending', methods=['GET'])
 def stocks_trending():
     """Get 3 trending buy and 3 sell stock ideas with descriptions via Gemini.
+    Supports optional refresh parameters:
+      - avoid: comma-separated symbols to avoid repeating
+      - seed: arbitrary string/number to inject into prompt for variety
+      - temperature: float to increase diversity
     This is general information, not financial advice.
     """
     try:
-        data = gemini_client.get_trending_stocks()
+        avoid = request.args.get('avoid', '')
+        avoid_symbols = [s.strip().upper() for s in avoid.split(',') if s.strip()] if avoid else []
+        seed = request.args.get('seed', None)
+        temperature = request.args.get('temperature', None)
+        reset_history = str(request.args.get('reset', 'false')).lower() in ('1', 'true', 'yes')
+        temp_val = None
+        try:
+            if temperature is not None:
+                temp_val = float(temperature)
+        except Exception:
+            temp_val = None
+
+        # Maintain a history of shown symbols to strongly avoid repeats
+        if reset_history:
+            user_session_state['trending_history'] = {'seen': []}
+        hist = user_session_state.get('trending_history', {'seen': []})
+        seen_list = hist.get('seen') or []
+        seen_set = set([str(s).upper() for s in seen_list])
+
+        # Also avoid the immediately previous set
+        last = user_session_state.get('last_trending', {"buys": [], "sells": []})
+        last_symbols = [s.get('symbol') for s in (last.get('buys') or [])] + [s.get('symbol') for s in (last.get('sells') or [])]
+        last_symbols = [str(s or '').upper() for s in last_symbols if s]
+
+        # Build merged avoidance list (provided avoid + last + seen history)
+        merged_avoid = sorted(set((avoid_symbols or []) + last_symbols + list(seen_set))) or None
+
+        import time as _time
+
+        def to_upper_list(items):
+            return [str(x or '').upper() for x in items if x]
+
+        # Attempt multiple times to gather unseen candidates
+        buys_pool = []
+        sells_pool = []
+        max_attempts = 4
+        base_temp = temp_val if temp_val is not None else 0.95
+        current_avoid = set(merged_avoid or [])
+        for i in range(max_attempts):
+            s = seed if i == 0 and seed is not None else f"{seed or 'seed'}-{_time.time_ns()}-{i}"
+            t = min(1.0, base_temp + i * 0.02)
+            data_try = gemini_client.get_trending_stocks(
+                avoid_symbols=sorted(current_avoid) if current_avoid else None,
+                seed=s,
+                temperature=t
+            )
+            try:
+                new_buys = [it for it in (data_try.get('buys') or []) if str((it.get('symbol') or '')).upper() not in seen_set]
+                new_sells = [it for it in (data_try.get('sells') or []) if str((it.get('symbol') or '')).upper() not in seen_set]
+            except Exception:
+                new_buys, new_sells = [], []
+            # Append unseen first
+            buys_pool.extend(new_buys)
+            sells_pool.extend(new_sells)
+            # Expand avoid with everything we just saw to push variety
+            try:
+                current_avoid.update(to_upper_list([x.get('symbol') for x in (data_try.get('buys') or [])]))
+                current_avoid.update(to_upper_list([x.get('symbol') for x in (data_try.get('sells') or [])]))
+            except Exception:
+                pass
+            # Early exit if we already have enough unseen
+            if len(buys_pool) >= 3 and len(sells_pool) >= 3:
+                break
+
+        # Deduplicate while preserving order
+        def dedupe(items):
+            seen_local = set()
+            out = []
+            for it in items:
+                key = str((it.get('symbol') or '')).upper()
+                if key and key not in seen_local:
+                    out.append(it)
+                    seen_local.add(key)
+            return out
+
+        buys_pool = dedupe(buys_pool)
+        sells_pool = dedupe(sells_pool)
+
+        # If still not enough unseen, try a final Gemini call and then fallback pool respecting avoid
+        if len(buys_pool) < 3 or len(sells_pool) < 3:
+            extra = gemini_client.get_trending_stocks(
+                avoid_symbols=sorted(current_avoid) if current_avoid else None,
+                seed=f"final-{_time.time_ns()}",
+                temperature=1.0
+            )
+            try:
+                buys_pool.extend([it for it in (extra.get('buys') or []) if str((it.get('symbol') or '')).upper() not in seen_set])
+                sells_pool.extend([it for it in (extra.get('sells') or []) if str((it.get('symbol') or '')).upper() not in seen_set])
+            except Exception:
+                pass
+            buys_pool = dedupe(buys_pool)
+            sells_pool = dedupe(sells_pool)
+        if len(buys_pool) < 3 or len(sells_pool) < 3:
+            fb = gemini_client._fallback_trending_stocks(avoid_symbols=sorted(current_avoid) if current_avoid else None)
+            try:
+                buys_pool.extend(fb.get('buys', []))
+                sells_pool.extend(fb.get('sells', []))
+            except Exception:
+                pass
+            buys_pool = dedupe(buys_pool)
+            sells_pool = dedupe(sells_pool)
+
+        # Final selection: first 3 of each
+        buys_out = buys_pool[:3] if len(buys_pool) >= 3 else (buys_pool + (last.get('buys') or []))[:3]
+        sells_out = sells_pool[:3] if len(sells_pool) >= 3 else (sells_pool + (last.get('sells') or []))[:3]
+
+        data = {
+            'buys': buys_out,
+            'sells': sells_out,
+            'disclaimer': (last.get('disclaimer') if isinstance(last, dict) else None) or 'This content is for general informational purposes only and is not financial advice.'
+        }
+
+        # Persist current as last and update history
+        try:
+            user_session_state['last_trending'] = {'buys': buys_out[:], 'sells': sells_out[:]}
+            new_seen = list(seen_set)
+            for it in buys_out + sells_out:
+                sym = str((it.get('symbol') or '')).upper()
+                if sym and sym not in new_seen:
+                    new_seen.append(sym)
+            user_session_state['trending_history'] = {'seen': new_seen}
+        except Exception:
+            pass
+
         return jsonify(data)
     except Exception as e:
         print(f"Error in stocks_trending: {e}")
