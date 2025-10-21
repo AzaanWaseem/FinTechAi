@@ -7,13 +7,24 @@ import StocksCard from './StocksCard';
 import SavedStocksCard from './SavedStocksCard';
 import BestCards from './BestCards';
 
-// Helper to generate a random date between July 1 and October 31, 2025
+/**
+ * Helper function to generate a random date between July 1 and October 31, 2025
+ * Used for creating realistic mock transaction dates
+ * @returns {Date} Random date within the specified range
+ */
 function randomDateJulyToOctober() {
   const start = new Date('2025-07-01T00:00:00Z').getTime();
   const end = new Date('2025-10-31T23:59:59Z').getTime();
   const date = new Date(start + Math.random() * (end - start));
   return date;
 }
+
+/**
+ * Main Dashboard component that displays financial analysis and interactive tools
+ * @param {Object} props - Component props
+ * @param {Function} props.onBack - Callback function to navigate back to previous screen
+ * @returns {JSX.Element} Dashboard UI with spending analysis, goals, and recommendations
+ */
 const Dashboard = ({ onBack }) => {
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,8 +47,10 @@ const Dashboard = ({ onBack }) => {
       setAnalysisData(response.data);
       setError('');
     } catch (err) {
-      console.error('Analysis error:', err);
-      setError('Failed to load your financial analysis. Please try again.');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Analysis error:', err);
+      }
+      setError(err?.response?.data?.error || 'Failed to load your financial analysis. Please try again.');
       // Set default data to prevent crashes
       setAnalysisData({
         needsTotal: 0,
@@ -69,7 +82,9 @@ const Dashboard = ({ onBack }) => {
       setShowAddForm(false);
       await fetchAnalysis();
     } catch (err) {
-      console.error('Add transaction error:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Add transaction error:', err);
+      }
   const message = err?.response?.data?.error || err.message || 'Failed to add transaction.';
   setError(message);
     } finally {

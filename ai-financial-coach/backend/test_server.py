@@ -13,5 +13,8 @@ def create_onboard():
     return jsonify({"customerId": "test123", "accountId": "acc123"})
 
 if __name__ == '__main__':
-    print('🚀 Starting AI Financial Coach Backend...')
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info('Starting AI Financial Coach Backend...')
     app.run(debug=True, port=5002)

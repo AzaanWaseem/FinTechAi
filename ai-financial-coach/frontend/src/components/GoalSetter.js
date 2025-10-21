@@ -40,8 +40,10 @@ const GoalSetter = ({ onComplete }) => {
         setError('Failed to set your savings goal. Please try again.');
       }
     } catch (err) {
-      console.error('Goal setting error:', err);
-      setError('Failed to set your savings goal. Please try again.');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Goal setting error:', err);
+      }
+      setError(err?.response?.data?.error || 'Failed to set your savings goal. Please try again.');
     } finally {
       setIsLoading(false);
     }

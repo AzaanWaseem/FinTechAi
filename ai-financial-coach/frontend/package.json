@@ -1,6 +1,16 @@
 {
   "name": "ai-financial-coach-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Frontend for AI-Powered Financial Coach - An intelligent financial coaching application",
+  "author": "AI Financial Coach Team",
+  "license": "MIT",
+  "homepage": "https://github.com/AzaanWaseem/HackTx2025/tree/main/ai-financial-coach",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AzaanWaseem/HackTx2025.git",
+    "directory": "ai-financial-coach/frontend"
+  },
+  "keywords": ["finance", "ai", "react", "financial-coaching", "budgeting", "hackathon"],
   "private": true,
   "dependencies": {
     "axios": "^1.6.0",

@@ -8,20 +8,21 @@ const POINTS_PER_REWARD = 10;
 const REWARD_VALUE = 50;
 
 const popularRetailers = [
-  { name: 'Amazon', key: 'amazon' },
-  { name: 'Target', key: 'target' },
-  { name: 'Walmart', key: 'walmart' },
-  { name: 'Starbucks', key: 'starbucks' },
-  { name: 'Chipotle', key: 'chipotle' },
-  { name: "McDonald's", key: 'mcdonalds' },
-  { name: 'DoorDash', key: 'doordash' },
-  { name: 'Best Buy', key: 'bestbuy' }
+  { name: 'Amazon', key: 'amazon', emoji: '📦', color: '#FF9900' },
+  { name: 'Target', key: 'target', emoji: '🎯', color: '#CC0000' },
+  { name: 'Walmart', key: 'walmart', emoji: '🛒', color: '#0071CE' },
+  { name: 'Starbucks', key: 'starbucks', emoji: '☕', color: '#00704A' },
+  { name: 'Chipotle', key: 'chipotle', emoji: '🌯', color: '#A81612' },
+  { name: "McDonald's", key: 'mcdonalds', emoji: '🍟', color: '#FFC72C' },
+  { name: 'DoorDash', key: 'doordash', emoji: '🚗', color: '#FF3008' },
+  { name: 'Best Buy', key: 'bestbuy', emoji: '💻', color: '#0046BE' }
 ];
 
 const Rewards = ({ actualSavings }) => {
   const [selectedRetailer, setSelectedRetailer] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [page, setPage] = useState(0);
+  const [imageErrors, setImageErrors] = useState(new Set());
 
   // Defensive: coerce actualSavings to a finite number (fallback to 0).
   const safeSavings = Number(actualSavings) || 0;
@@ -88,11 +89,6 @@ const Rewards = ({ actualSavings }) => {
             <div className="retailers-grid">
               {pagedRetailers.map((retailer) => {
                 const label = retailer.name;
-                // Prefer PNGs if they exist (designer replaced folder with PNGs); fall back to SVG
-                const pngPath = `${process.env.PUBLIC_URL}/assets/logos/${retailer.key}.png`;
-                const svgPath = `${process.env.PUBLIC_URL}/assets/logos/${retailer.key}.svg`;
-                // Use PNG by default; the browser will 404 if missing and then the SVG will be used via onError
-                const logoSrc = pngPath;
                 return (
                   <button
                     key={retailer.key}
@@ -103,16 +99,26 @@ const Rewards = ({ actualSavings }) => {
                     }}
                     aria-disabled={!canRedeem}
                     tabIndex={!canRedeem ? -1 : 0}
+                    style={{
+                      borderColor: selectedRetailer === label ? retailer.color : undefined
+                    }}
                   >
-                    <img
+                    <div 
                       className="retailer-logo"
-                      src={logoSrc}
-                      alt={`${label} logo`}
-                      onError={(e) => {
-                        // fallback to svg if png not present
-                        if (e && e.currentTarget) e.currentTarget.src = svgPath;
+                      style={{
+                        backgroundColor: retailer.color,
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        marginBottom: '8px'
                       }}
-                    />
+                    >
+                      {retailer.emoji}
+                    </div>
                     <span className="retailer-name">{label}</span>
                   </button>
                 );

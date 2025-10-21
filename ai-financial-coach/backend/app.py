@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import logging
 from nessie_client import NessieClient
 from gemini_client import GeminiClient
 from mediastack_client import MediastackClient
@@ -11,18 +12,22 @@ import json
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 CORS(app)
 
 # Global session state for prototype
+# In a production environment, this would be stored in a database per user
 user_session_state = {
-    "customer_id": None,
-    "account_id": None,
-    "savings_goal": 0,
-    "monthly_budget": 0,
-    "saved_stocks": []  # list of {symbol, name}
+    "customer_id": None,        # Nessie API customer ID
+    "account_id": None,         # Nessie API account ID  
+    "savings_goal": 0,          # Monthly savings goal in dollars
+    "monthly_budget": 0,        # Monthly budget in dollars
+    "saved_stocks": []          # List of saved stocks: [{symbol, name}]
 }
-# Note: tracks transactions the user has chosen to remove/hide (account_id -> [ id | {description, amount} ])
 user_session_state.setdefault('removed_transactions', {})
 
 # Initialize clients
@@ -31,7 +36,22 @@ gemini_client = GeminiClient()
 mediastack_client = MediastackClient()
 
 def analyze_spending():
-    """Main function to analyze user spending patterns"""
+    """
+    Analyze user spending patterns using AI categorization.
+    
+    Fetches transactions from Nessie API or uses mock data, categorizes them
+    as 'Needs' vs 'Wants' using Gemini AI, and generates personalized
+    financial recommendations.
+    
+    Returns:
+        dict: Analysis results containing:
+            - needsTotal: Total spending on needs
+            - wantsTotal: Total spending on wants  
+            - monthlyBudget: User's monthly budget
+            - savingsGoal: User's savings goal
+            - recommendation: AI-generated advice
+            - categorizedTransactions: List of categorized transactions
+    """
     try:
         account_id = user_session_state.get("account_id")
         savings_goal = user_session_state.get("savings_goal", 0)
@@ -170,7 +190,7 @@ def analyze_spending():
         
         
     except Exception as e:
-        print(f"Error in analyze_spending: {e}")
+        logger.error(f"Error in analyze_spending: {e}")
         return {"error": "Analysis failed. Please try again."}
 
 @app.route('/api/onboard', methods=['POST'])
@@ -204,7 +224,7 @@ def onboard():
                 user_session_state.setdefault('mock_transactions', {})
                 user_session_state['mock_transactions'][account_id] = synth
             except Exception as e:
-                print(f"Error generating mock transactions: {e}")
+                logger.error(f"Error generating mock transactions: {e}")
             return jsonify({
                 "customerId": customer_id,
                 "accountId": account_id,
@@ -220,7 +240,7 @@ def onboard():
             try:
                 nessie_client.seed_transactions(account_id)
             except Exception as e:
-                print(f"Error during seeding: {e}")
+                logger.error(f"Error during seeding: {e}")
                 # still return customer/account so user can proceed, but warn
                 return jsonify({"customerId": customer_id, "accountId": account_id, "warning": "Account created but seeding transactions failed."}), 200
 
@@ -232,7 +252,7 @@ def onboard():
             return jsonify({"error": "Failed to create account"}), 500
 
     except Exception as e:
-        print(f"Error in onboard: {e}")
+        logger.error(f"Error in onboard: {e}")
         # return the exception message to help debugging in dev environments
         return jsonify({"error": f"Failed to create your financial account: {str(e)}"}), 500
 

@@ -43,7 +43,9 @@ const Onboarding = ({ onComplete }) => {
         setError('Failed to create your financial account. Please try again.');
       }
     } catch (err) {
-      console.error('Onboarding error:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Onboarding error:', err);
+      }
       const message = err?.response?.data?.error || err?.message || 'Failed to create your financial account. Please try again.';
       setError(message);
     } finally {

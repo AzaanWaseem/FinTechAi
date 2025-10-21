@@ -1,9 +1,14 @@
 import google.generativeai as genai
 import os
 import json
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class GeminiClient:
     def __init__(self):
@@ -18,7 +23,7 @@ class GeminiClient:
         """Categorize transactions as 'Need' or 'Want' using Gemini AI"""
         try:
             if not self.model:
-                print("⚠️  Gemini API key not configured, using fallback categorization")
+                logger.warning("Gemini API key not configured, using fallback categorization")
                 return None
             
             prompt = f"""You are a meticulous financial analyst AI. Your sole task is to categorize a list of bank transaction descriptions as either 'Need' or 'Want'.
@@ -60,14 +65,14 @@ Here is the list of transactions to categorize:
             return result
             
         except Exception as e:
-            print(f"⚠️  Error categorizing transactions: {e}")
+            logger.error(f"Error categorizing transactions: {e}")
             return None
     
     def get_recommendation(self, needs_total, wants_total, goal, want_transactions_list):
         """Generate personalized financial recommendation"""
         try:
             if not self.model:
-                print("⚠️  Gemini API key not configured, using fallback recommendation")
+                logger.warning("Gemini API key not configured, using fallback recommendation")
                 return self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
 
             # Structured prompt: ask for JSON with top wants and a short actionable suggestion
@@ -136,14 +141,14 @@ Constraints:
             return final or self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
 
         except Exception as e:
-            print(f"⚠️  Error getting recommendation: {e}")
+            logger.error(f"Error getting recommendation: {e}")
             return self._get_fallback_recommendation(needs_total, wants_total, goal, want_transactions_list)
     
     def get_investment_concept(self, goal):
         """Generate educational investment concept"""
         try:
             if not self.model:
-                print("⚠️  Gemini API key not configured, using fallback investment concept")
+                logger.warning("Gemini API key not configured, using fallback investment concept")
                 return self._get_fallback_investment_concept(goal)
             
             prompt = f"""You are a financial educator AI. Your role is to explain complex financial concepts in a simple, easy-to-understand way. You are NOT a financial advisor and must not give financial advice.
@@ -177,7 +182,7 @@ Return your response as a JSON object with "title" and "explanation" fields."""
                 }
             
         except Exception as e:
-            print(f"⚠️  Error getting investment concept: {e}")
+            logger.error(f"Error getting investment concept: {e}")
             return self._get_fallback_investment_concept(goal)
     
     def _get_fallback_recommendation(self, needs_total, wants_total, goal, want_transactions_list):
@@ -250,7 +255,7 @@ Return your response as a JSON object with "title" and "explanation" fields."""
             except Exception:
                 return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
         except Exception as e:
-            print(f"⚠️  Error getting trending stocks: {e}")
+            logger.error(f"Error getting trending stocks: {e}")
             return self._fallback_trending_stocks(avoid_symbols=avoid_symbols)
 
     def _fallback_trending_stocks(self, avoid_symbols=None):
@@ -320,7 +325,7 @@ Return your response as a JSON object with "title" and "explanation" fields."""
             except Exception:
                 return self._fallback_rate_stocks(stocks)
         except Exception as e:
-            print(f"⚠️  Error rating stocks: {e}")
+            logger.error(f"Error rating stocks: {e}")
             return self._fallback_rate_stocks(stocks)
 
     def _fallback_rate_stocks(self, stocks):
@@ -380,7 +385,7 @@ Return your response as a JSON object with "title" and "explanation" fields."""
             except Exception:
                 return self._fallback_credit_cards(approx_categories)
         except Exception as e:
-            print(f"⚠️  Error recommending credit cards: {e}")
+            logger.error(f"Error recommending credit cards: {e}")
             return self._fallback_credit_cards(approx_categories)
 
     def _fallback_credit_cards(self, approx_categories=None):

@@ -2,9 +2,14 @@ import requests
 import json
 import os
 import uuid
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class NessieClient:
@@ -73,7 +78,7 @@ class NessieClient:
             return customer_id, account_id
             
         except Exception as e:
-            print(f"⚠️  Error creating customer/account: {e}")
+            logger.error(f"Error creating customer/account: {e}")
             raise
     
     def _create_mock_customer_and_account(self):
@@ -170,10 +175,10 @@ class NessieClient:
                 )
                 if response.status_code != 201:
                     raise RuntimeError(f"Transaction creation failed: {response.status_code}")
-            print(f"✅ Seeded {len(sample_transactions)} transactions")
+            logger.info(f"Seeded {len(sample_transactions)} transactions")
             
         except Exception as e:
-            print(f"⚠️  Error seeding transactions: {e}")
+            logger.error(f"Error seeding transactions: {e}")
     
     def get_transactions(self, account_id):
         """Get all transactions for an account"""
@@ -195,7 +200,7 @@ class NessieClient:
             return normalized
             
         except Exception as e:
-            print(f"⚠️  Error getting transactions: {e}")
+            logger.error(f"Error getting transactions: {e}")
             raise
 
     def delete_transaction(self, account_id, purchase_id):
@@ -209,7 +214,7 @@ class NessieClient:
             else:
                 raise RuntimeError(f"Failed to delete purchase: {response.status_code}")
         except Exception as e:
-            print(f"⚠️  Error deleting transaction: {e}")
+            logger.error(f"Error deleting transaction: {e}")
             raise
     
     def _get_mock_transactions(self):
@@ -291,7 +296,7 @@ class NessieClient:
         """Create a transaction in Nessie if available. Returns normalized tx with id or None if failed."""
         try:
             if not self._test_api_connection():
-                print("⚠️  Nessie API not accessible, cannot create transaction")
+                logger.warning("Nessie API not accessible, cannot create transaction")
                 return None
 
             # Build minimal purchase payload
@@ -309,9 +314,9 @@ class NessieClient:
                 created = response.json()
                 return self._normalize_tx(created, source='nessie')
             else:
-                print(f"⚠️  Failed to create transaction: {response.status_code}")
+                logger.warning(f"Failed to create transaction: {response.status_code}")
                 return None
         except Exception as e:
-            print(f"⚠️  Error creating transaction: {e}")
+            logger.error(f"Error creating transaction: {e}")
             return None
 

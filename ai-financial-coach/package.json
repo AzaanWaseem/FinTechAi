@@ -1,4 +1,42 @@
 {
+  "name": "ai-financial-coach",
+  "version": "1.0.0",
+  "description": "AI-Powered Financial Coach - An intelligent financial coaching application that uses AI to analyze spending patterns and provide personalized recommendations",
+  "main": "index.js",
+  "scripts": {
+    "setup": "./setup.sh",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && python app.py",
+    "frontend": "cd frontend && npm start",
+    "install-all": "cd backend && pip install -r requirements.txt && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "finance",
+    "ai",
+    "financial-coaching",
+    "budgeting",
+    "react",
+    "flask",
+    "gemini-ai",
+    "hackathon",
+    "spending-analysis",
+    "savings-goals"
+  ],
+  "author": "AI Financial Coach Team",
+  "license": "MIT",
+  "homepage": "https://github.com/AzaanWaseem/HackTx2025/tree/main/ai-financial-coach",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AzaanWaseem/HackTx2025.git",
+    "directory": "ai-financial-coach"
+  },
+  "bugs": {
+    "url": "https://github.com/AzaanWaseem/HackTx2025/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "python": ">=3.9.0"
+  },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -6,6 +44,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2"
+    "@types/react-dom": "^19.2.2",
+    "concurrently": "^8.2.2"
   }
 }
