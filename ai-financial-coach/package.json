@@ -1,7 +1,7 @@
 {
-  "name": "ai-financial-coach",
+  "name": "budgetbuddy",
   "version": "1.0.0",
-  "description": "AI-Powered Financial Coach - An intelligent financial coaching application that uses AI to analyze spending patterns and provide personalized recommendations",
+  "description": "BudgetBuddy - Your intelligent budget companion that uses AI to analyze spending patterns and provide personalized financial recommendations",
   "main": "index.js",
   "scripts": {
     "setup": "./setup.sh",

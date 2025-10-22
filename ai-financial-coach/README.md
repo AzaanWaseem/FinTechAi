@@ -1,10 +1,12 @@
-# AI-Powered Financial Coach 💰
+# BudgetBuddy 🤖💰
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18+-blue.svg)](https://reactjs.org/)
+[![Flask](https://img.shields.io/badge/flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
+[![AI Powered](https://img.shields.io/badge/AI-Powered-orange.svg)](https://ai.google.dev/)
 
-An intelligent financial coaching application that leverages AI to analyze spending patterns, provide personalized recommendations, and help users achieve their financial goals. Built for educational purposes and personal finance management.
+Your intelligent budget companion that uses AI to analyze spending patterns, provide personalized financial recommendations, and help you achieve your financial goals. BudgetBuddy makes personal finance management simple, engaging, and effective.
 
 ## ✨ Features
 
@@ -53,7 +55,7 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 ```bash
 git clone <your-repo-url>
-cd ai-financial-coach
+cd BudgetBuddy
 ```
 
 ### 2. Backend Setup
@@ -129,7 +131,7 @@ Frontend will run on `http://localhost:3000`
 ## 🏗️ Project Structure
 
 ```
-ai-financial-coach/
+BudgetBuddy/
 ├── backend/
 │   ├── app.py              # Main Flask application
 │   ├── nessie_client.py    # Nessie API integration
@@ -205,7 +207,7 @@ We welcome contributions from the community! Here's how you can help:
 
 ### Getting Started
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/your-username/ai-financial-coach.git`
+2. **Clone** your fork: `git clone https://github.com/your-username/BudgetBuddy.git`
 3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
 4. **Make** your changes
 5. **Test** thoroughly

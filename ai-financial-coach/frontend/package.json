@@ -1,7 +1,7 @@
 {
-  "name": "ai-financial-coach-frontend",
+  "name": "budgetbuddy-frontend",
   "version": "1.0.0",
-  "description": "Frontend for AI-Powered Financial Coach - An intelligent financial coaching application",
+  "description": "Frontend for BudgetBuddy - Your intelligent budget companion",
   "author": "AI Financial Coach Team",
   "license": "MIT",
   "homepage": "https://github.com/AzaanWaseem/HackTx2025/tree/main/ai-financial-coach",
